@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#050505">
+    <meta name="description" content="Citrus - Modern expense tracking and personal finance management">
+    <title>Citrus | Expense Tracker</title>
+    
+    <!-- Preconnect to Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Poppins:wght@400;600;700;900&display=swap" rel="stylesheet">
+    
+    <!-- Main CSS (processed by Vite/PostCSS with Tailwind) -->
+    <link rel="stylesheet" href="/index.css">
+</head>
+<body class="theme-light overflow-hidden">
+    <div id="root"></div>
+    
+    <script>
+        // Mouse tracking for background effect - DESKTOP ONLY
+        // Check for touch device or small screen to disable expensive effect
+        (function() {
+            const isMobile = window.matchMedia('(max-width: 768px)').matches;
+            const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+            
+            if (!isMobile && !isTouchDevice) {
+                let ticking = false;
+                
+                document.addEventListener('mousemove', function(e) {
+                    if (!ticking) {
+                        window.requestAnimationFrame(function() {
+                            const x = (e.clientX / window.innerWidth) * 100;
+                            const y = (e.clientY / window.innerHeight) * 100;
+                            document.documentElement.style.setProperty('--mouse-x', x.toFixed(1) + '%');
+                            document.documentElement.style.setProperty('--mouse-y', y.toFixed(1) + '%');
+                            ticking = false;
+                        });
+                        ticking = true;
+                    }
+                }, { passive: true });
+            }
+        })();
+    </script>
+    
+    <script type="module" src="/index.tsx"></script>
+</body>
+</html>

@@ -1,0 +1,255 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* CSS Variables for Theme */
+:root {
+    --bg-primary: #f8fafc;
+    --bg-secondary: rgba(255, 255, 255, 0.7);
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #94a3b8;
+    --action-primary: #f97316;
+    --action-hover: #ea580c;
+    --action-soft: rgba(249, 115, 22, 0.1);
+    --success: #10b981;
+    --success-soft: rgba(16, 185, 129, 0.1);
+    --error: #ef4444;
+    --border-default: rgba(0, 0, 0, 0.05);
+    --shadow-glass: 0 8px 32px 0 rgba(249, 115, 22, 0.07);
+    --mouse-x: 50%;
+    --mouse-y: 50%;
+}
+
+.theme-dark {
+    --bg-primary: #050505;
+    --bg-secondary: rgba(20, 20, 20, 0.6);
+    --text-primary: #ffffff;
+    --text-secondary: #94a3b8;
+    --text-muted: #475569;
+    --action-primary: #fb923c;
+    --action-hover: #f97316;
+    --action-soft: rgba(251, 146, 60, 0.1);
+    --success: #34d399;
+    --success-soft: rgba(52, 211, 153, 0.1);
+    --error: #f87171;
+    --border-default: rgba(255, 255, 255, 0.08);
+    --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+}
+
+/* Base Styles */
+body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    transition: background-color 0.5s ease;
+    min-height: 100vh;
+}
+
+/* Desktop-only animated background - disabled on mobile for performance */
+@media (min-width: 769px) and (hover: hover) {
+    body {
+        background-image: 
+            radial-gradient(circle at var(--mouse-x) var(--mouse-y), rgba(249, 115, 22, 0.35) 0%, transparent 65%),
+            radial-gradient(circle at calc(100% - var(--mouse-x)) calc(100% - var(--mouse-y)), rgba(16, 185, 129, 0.25) 0%, transparent 65%);
+        background-attachment: fixed;
+    }
+
+    .theme-dark body {
+        background-image: 
+            radial-gradient(circle at var(--mouse-x) var(--mouse-y), rgba(249, 115, 22, 0.2) 0%, transparent 50%),
+            radial-gradient(circle at calc(100% - var(--mouse-x)) calc(100% - var(--mouse-y)), rgba(16, 185, 129, 0.15) 0%, transparent 50%);
+    }
+}
+
+/* Mobile uses static, lightweight background with gradient */
+@media (max-width: 768px), (hover: none) {
+    body {
+        background-color: var(--bg-primary);
+        background-image: 
+            radial-gradient(circle at 10% 20%, rgba(249, 115, 22, 0.15) 0%, transparent 40%),
+            radial-gradient(circle at 90% 80%, rgba(16, 185, 129, 0.1) 0%, transparent 40%);
+        background-attachment: scroll; /* Better performance on mobile */
+    }
+    
+    .theme-dark body {
+        background-color: var(--bg-primary);
+        background-image: 
+            radial-gradient(circle at 10% 20%, rgba(249, 115, 22, 0.1) 0%, transparent 45%),
+            radial-gradient(circle at 90% 80%, rgba(16, 185, 129, 0.08) 0%, transparent 45%);
+    }
+}
+
+/* Utility Classes */
+.font-poppins { font-family: 'Poppins', sans-serif; }
+.tabular-nums { font-variant-numeric: tabular-nums; }
+
+/* Glass Effect */
+.glass {
+    background: var(--bg-secondary);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--border-default);
+    box-shadow: var(--shadow-glass);
+}
+
+/* Performance: Aggressively disable blur on mobile */
+/* Performance: Aggressively disable blur on mobile */
+@media (max-width: 768px) {
+    .glass, .glass-glow, .backdrop-blur-md, .backdrop-blur-sm, .backdrop-blur-xl {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        /* Use solid colors via hex variables to prevent transparency issues */
+        background: var(--bg-primary) !important; 
+        border: 1px solid var(--border-default);
+        /* Ensure specific opacity if needed by using hardcoded fallbacks or new vars */
+    }
+
+    /* Dark mode needs higher opacity to hide elements */
+    .theme-dark .glass {
+        background: #050505 !important; /* Matches --bg-primary but ensures 100% opacity */
+    }
+    
+    .theme-light .glass {
+        background: #ffffff !important; /* Matches --bg-primary but ensures 100% opacity */
+    }
+
+    /* Disable expensive box-shadows on mobile */
+    .glass, .shadow-glass, .shadow-xl, .shadow-lg {
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1) !important;
+    }
+}
+
+/* Primary Button */
+.btn-primary {
+    background: linear-gradient(135deg, var(--action-primary), #fbbf24);
+    color: white;
+    transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-primary:hover {
+    transform: scale(1.02) translateY(-2px);
+    box-shadow: 0 10px 20px -5px rgba(249, 115, 22, 0.4);
+}
+
+/* Disable hover effects on touch devices */
+@media (hover: none) {
+    .btn-primary:hover {
+        transform: none;
+        box-shadow: none;
+    }
+}
+
+.btn-primary::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.btn-primary:hover::after {
+    opacity: 1;
+}
+
+/* Scrollbar Styles */
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: linear-gradient(var(--action-primary), var(--success));
+    border-radius: 10px;
+}
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Animations - Use GPU-accelerated properties */
+.fade-in { 
+    animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1); 
+}
+
+@keyframes fadeIn {
+    from { 
+        opacity: 0; 
+        transform: translateY(20px) scale(0.98); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0) scale(1); 
+    }
+}
+
+.animate-scale-in { 
+    animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); 
+}
+
+@keyframes scaleIn {
+    from { 
+        opacity: 0; 
+        transform: scale(0.9); 
+    }
+    to { 
+        opacity: 1; 
+        transform: scale(1); 
+    }
+}
+
+/* Reduce animations on mobile and for users who prefer reduced motion */
+@media (max-width: 768px), (prefers-reduced-motion: reduce) {
+    .fade-in {
+        animation: fadeInSimple 0.3s ease-out;
+    }
+    
+    @keyframes fadeInSimple {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    .animate-scale-in {
+        animation: none;
+    }
+}
+
+/* Glass Glow Effect - Desktop only */
+.glass-glow {
+    position: relative;
+}
+
+@media (min-width: 769px) {
+    .glass-glow::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        padding: 1px;
+        background: linear-gradient(135deg, rgba(255,255,255,0.2), transparent, rgba(255,255,255,0.1));
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        pointer-events: none;
+    }
+}
+
+/* Performance: Use will-change sparingly */
+.glass-glow:hover {
+    will-change: transform;
+}
+
+/* Ensure smooth scrolling on iOS */
+@supports (-webkit-touch-callout: none) {
+    .overflow-y-auto,
+    .overflow-x-auto,
+    .custom-scrollbar {
+        -webkit-overflow-scrolling: touch;
+        scroll-behavior: smooth;
+        /* Hint to browser to promote to its own layer */
+        will-change: scroll-position;
+    }
+}
