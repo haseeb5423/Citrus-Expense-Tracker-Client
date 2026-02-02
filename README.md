@@ -54,7 +54,7 @@ client/
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd nexuspay-finance/client
+   cd Citrus-Expense-Tracker/client
    ```
 
 2. **Install dependencies**
