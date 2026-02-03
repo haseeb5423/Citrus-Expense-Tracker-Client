@@ -68,8 +68,8 @@ export const RecentHistory: React.FC<Props> = React.memo(({ transactions, onSeeA
                 {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount, currencySymbol).replace(currencySymbol + ' ', '')}
                 <span className="text-[10px] ml-0.5 opacity-60 font-semibold">{currencySymbol}</span>
               </p>
-              <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-tighter opacity-0 group-hover:opacity-100 transition-opacity hidden md:block">
-                Verified
+              <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-tighter">
+                {t.balanceAt !== undefined ? `Balance: ${formatCurrency(t.balanceAt, currencySymbol)}` : 'Verified'}
               </p>
             </div>
           </div>

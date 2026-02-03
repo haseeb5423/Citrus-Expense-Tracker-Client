@@ -1,8 +1,9 @@
 
 import React, { useEffect, useState } from 'react';
-import { X, CheckCircle2, Wallet, Tag, FileText } from 'lucide-react';
+import { X, CheckCircle2, Wallet, Tag, FileText, Calendar } from 'lucide-react';
 import { Account, Transaction } from '../../../types';
 import { INITIAL_CATEGORIES } from '../../../constants';
+import { DatePicker } from '../../ui/DatePicker';
 
 interface Props {
   isOpen: boolean;
@@ -14,6 +15,16 @@ interface Props {
 }
 
 export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, accounts, onSubmit, transaction, currencySymbol }) => {
+  const [date, setDate] = useState(transaction?.date || new Date().toISOString());
+
+  useEffect(() => {
+    if (transaction) {
+      setDate(transaction.date);
+    } else {
+      setDate(new Date().toISOString());
+    }
+  }, [transaction, isOpen]);
+
   if (!isOpen) return null;
 
   return (
@@ -102,6 +113,13 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, accounts, o
                   className="w-full bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-xl px-6 py-4 outline-none font-bold text-xs focus:border-[var(--action-primary)] transition-all shadow-sm"
                 />
               </div>
+
+              <DatePicker
+                label="Select Date"
+                name="date"
+                value={date}
+                onChange={setDate}
+              />
             </div>
 
             <button

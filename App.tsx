@@ -90,14 +90,16 @@ const FinanceApp: React.FC = () => {
     const accountId = formData.get('accountId') as string;
     const category = formData.get('category') as string;
     const description = formData.get('description') as string;
+    const dateInput = formData.get('date') as string;
+    const date = dateInput ? new Date(dateInput).toISOString() : new Date().toISOString();
 
     if (isNaN(amount) || amount <= 0) return;
 
     if (editingTransaction) {
-      updateTransaction(editingTransaction.id, { type, amount, accountId, category, description });
+      updateTransaction(editingTransaction.id, { type, amount, accountId, category, description, date });
       setEditingTransaction(null);
     } else {
-      addTransaction({ type, amount, accountId, category, description });
+      addTransaction({ type, amount, accountId, category, description, date });
       setShowAddTransaction(false);
     }
   };

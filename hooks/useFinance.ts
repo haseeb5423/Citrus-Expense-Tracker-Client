@@ -264,25 +264,31 @@ export const useFinance = () => {
         // API
         const response = await api.post('/finance/transactions', {
           ...data,
-          date: new Date().toISOString()
+          date: data.date || new Date().toISOString()
         });
         
         setTransactions(prev => [response.data, ...prev]);
         // Re-fetch to ensure consistency
         await fetchBackendData();
       } else {
-        // Local
+        // Local Guest Mode logic
+        const targetAcc = accounts.find(a => a.id === data.accountId);
+        const balanceAt = targetAcc 
+          ? (data.type === 'income' ? targetAcc.balance + data.amount : targetAcc.balance - data.amount)
+          : 0;
+
         const newTransaction: Transaction = {
           id: Date.now().toString(),
           ...data,
-          date: new Date().toISOString()
+          date: data.date || new Date().toISOString(),
+          balanceAt
         };
         setTransactions(prev => [newTransaction, ...prev]);
         setAccounts(prev => prev.map(acc => {
           if (acc.id === data.accountId) {
             return {
               ...acc,
-              balance: data.type === 'income' ? acc.balance + data.amount : acc.balance - data.amount
+              balance: balanceAt
             };
           }
           return acc;
@@ -517,6 +523,9 @@ export const useFinance = () => {
         
         if (!sourceAcc || !targetAcc) throw new Error('Account not found');
 
+        const newSourceBalance = sourceAcc.balance - amount;
+        const newTargetBalance = targetAcc.balance + amount;
+
         const expenseTx: Transaction = {
           id: `tx-${Date.now()}-1`,
           accountId: sourceAccountId,
@@ -524,7 +533,8 @@ export const useFinance = () => {
           type: 'expense',
           category: 'Transfer',
           description: description || `Transfer to ${targetAcc.name}`,
-          date: date || new Date().toISOString()
+          date: date || new Date().toISOString(),
+          balanceAt: newSourceBalance
         };
 
         const incomeTx: Transaction = {
@@ -534,14 +544,15 @@ export const useFinance = () => {
           type: 'income',
           category: 'Transfer',
           description: description || `Transfer from ${sourceAcc.name}`,
-          date: date || new Date().toISOString()
+          date: date || new Date().toISOString(),
+          balanceAt: newTargetBalance
         };
 
         setTransactions(prev => [expenseTx, incomeTx, ...prev]);
         
         setAccounts(prev => prev.map(acc => {
-          if (acc.id === sourceAccountId) return { ...acc, balance: acc.balance - amount };
-          if (acc.id === targetAccountId) return { ...acc, balance: acc.balance + amount };
+          if (acc.id === sourceAccountId) return { ...acc, balance: newSourceBalance };
+          if (acc.id === targetAccountId) return { ...acc, balance: newTargetBalance };
           return acc;
         }));
       }

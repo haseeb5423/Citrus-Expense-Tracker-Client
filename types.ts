@@ -16,6 +16,7 @@ export interface Transaction {
   description: string;
   date: string;
   accountId: string;
+  balanceAt?: number;
 }
 
 export interface AccountType {

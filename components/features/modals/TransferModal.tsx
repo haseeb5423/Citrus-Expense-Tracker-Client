@@ -1,7 +1,8 @@
 
 import React, { useState } from 'react';
-import { X, CheckCircle2, Wallet, ArrowRightLeft, FileText } from 'lucide-react';
+import { X, CheckCircle2, Wallet, ArrowRightLeft, FileText, Calendar } from 'lucide-react';
 import { Account } from '../../../types';
+import { DatePicker } from '../../ui/DatePicker';
 
 interface Props {
     isOpen: boolean;
@@ -12,6 +13,8 @@ interface Props {
 }
 
 export const TransferModal: React.FC<Props> = ({ isOpen, onClose, accounts, onSubmit, currencySymbol }) => {
+    const [date, setDate] = useState(new Date().toISOString());
+
     if (!isOpen) return null;
 
     const [error, setError] = useState<string | null>(null);
@@ -25,6 +28,7 @@ export const TransferModal: React.FC<Props> = ({ isOpen, onClose, accounts, onSu
         const targetAccountId = formData.get('targetAccountId') as string;
         const amount = parseFloat(formData.get('amount') as string);
         const description = formData.get('description') as string;
+        const date = formData.get('date') as string;
 
         if (sourceAccountId === targetAccountId) {
             setError('Source and target accounts cannot be the same.');
@@ -47,7 +51,7 @@ export const TransferModal: React.FC<Props> = ({ isOpen, onClose, accounts, onSu
             targetAccountId,
             amount,
             description,
-            date: new Date().toISOString()
+            date: date ? new Date(date).toISOString() : new Date().toISOString()
         });
     };
 
@@ -129,6 +133,13 @@ export const TransferModal: React.FC<Props> = ({ isOpen, onClose, accounts, onSu
                                     className="w-full bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-xl px-6 py-4 outline-none font-bold text-xs focus:border-[var(--action-primary)] transition-all shadow-sm"
                                 />
                             </div>
+
+                            <DatePicker
+                                label="Select Date"
+                                name="date"
+                                value={date}
+                                onChange={setDate}
+                            />
                         </div>
 
                         <button

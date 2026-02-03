@@ -292,7 +292,9 @@ export const HistoryView: React.FC<Props> = ({
                         </div>
                         <div>
                           <p className="text-sm font-bold text-[var(--text-primary)]">{t.description}</p>
-                          <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-tighter">Verified Stream</p>
+                          <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-tighter">
+                            {t.balanceAt !== undefined ? `After: ${formatCurrency(t.balanceAt, currencySymbol)}` : 'Verified Stream'}
+                          </p>
                         </div>
                       </div>
                     </td>
