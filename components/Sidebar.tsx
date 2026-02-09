@@ -12,6 +12,9 @@ interface Props {
   setIsCollapsed: (collapsed: boolean) => void;
   isOpen?: boolean; // Mobile state
   setIsOpen?: (open: boolean) => void;
+  user?: any;
+  onLogout?: () => void;
+  onLoginClick?: () => void;
 }
 
 export const Sidebar: React.FC<Props> = ({
@@ -22,7 +25,10 @@ export const Sidebar: React.FC<Props> = ({
   isCollapsed,
   setIsCollapsed,
   isOpen,
-  setIsOpen
+  setIsOpen,
+  user,
+  onLogout,
+  onLoginClick
 }) => {
   return (
     <>
@@ -90,24 +96,38 @@ export const Sidebar: React.FC<Props> = ({
             {isDarkMode ? <Sun size={18} className="text-orange-400" /> : <Moon size={18} className="text-slate-500" />}
           </button>
 
-          <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 p-3'} rounded-2xl bg-[var(--bg-primary)] border border-[var(--border-default)] shadow-sm overflow-hidden`}>
-            <img
-              src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
-              className="w-10 h-10 rounded-xl border-2 border-white shadow-sm shrink-0"
-            // alt="User"
-            />
-            {!isCollapsed && (
-              <div className="flex flex-col min-w-0 flex-1">
-                <span className="text-xs font-black truncate text-[var(--text-primary)]">Alex Rivera</span>
-                <span className="text-[10px] text-[var(--text-muted)] font-bold uppercase tracking-tighter">Pro Member</span>
-              </div>
-            )}
-            {!isCollapsed && (
-              <button className="text-[var(--text-muted)] hover:text-[var(--error)] transition-colors p-1" title="Logout">
-                <LogOut size={16} />
-              </button>
-            )}
-          </div>
+          {user ? (
+            <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 p-3'} rounded-2xl bg-[var(--bg-primary)] border border-[var(--border-default)] shadow-sm overflow-hidden`}>
+              <img
+                src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name || 'Felix'}`}
+                className="w-10 h-10 rounded-xl border-2 border-white shadow-sm shrink-0"
+                alt="User"
+              />
+              {!isCollapsed && (
+                <div className="flex flex-col min-w-0 flex-1">
+                  <span className="text-xs font-black truncate text-[var(--text-primary)]">{user.name}</span>
+                  <span className="text-[10px] text-[var(--text-muted)] font-bold uppercase tracking-tighter">Verified User</span>
+                </div>
+              )}
+              {!isCollapsed && (
+                <button
+                  onClick={onLogout}
+                  className="text-[var(--text-muted)] hover:text-red-500 transition-colors p-1"
+                  title="Logout"
+                >
+                  <LogOut size={16} />
+                </button>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={onLoginClick}
+              className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'px-6'} py-4 bg-[var(--action-primary)] text-white rounded-2xl font-bold uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-orange-500/20`}
+            >
+              <LogOut size={18} className="rotate-180" />
+              {!isCollapsed && <span className="text-xs ml-3">Sign In</span>}
+            </button>
+          )}
         </div>
       </aside>
     </>

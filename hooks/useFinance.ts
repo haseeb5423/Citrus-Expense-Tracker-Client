@@ -163,13 +163,6 @@ export const useFinance = () => {
       setAccounts(normalizedAccounts);
       setTransactions(normalizedTransactions);
       setAccountTypes(finalTypes);
-      
-      // Sort by label for consistency
-      // finalTypes.sort((a, b) => a.label.localeCompare(b.label));
-
-      setAccounts(normalizedAccounts);
-      setTransactions(normalizedTransactions);
-      setAccountTypes(finalTypes); 
     } catch (e) {
       console.error("Fetch failed", e);
     }
@@ -226,341 +219,306 @@ export const useFinance = () => {
   // Actions
   const addAccountType = useCallback(async (label: string, theme: AccountType['theme']) => {
     try {
+      const optimisticType: AccountType = { id: `temp-type-${Date.now()}`, label, theme };
+      setAccountTypes(prev => [...prev, optimisticType]);
+
       if (user) {
         const { data } = await api.post('/finance/account-types', { label, theme });
-        setAccountTypes(prev => [...prev, { id: data._id, label: data.label, theme: data.theme }]);
-      } else {
-        const newType: AccountType = { id: `type-${Date.now()}`, label, theme };
-        setAccountTypes(prev => [...prev, newType]);
+        setAccountTypes(prev => prev.map(t => t.id === optimisticType.id ? { id: data._id, label: data.label, theme: data.theme } : t));
       }
     } catch (error) {
       console.error("Failed to add account type", error);
+      await fetchBackendData();
     }
   }, [user]);
 
   const deleteAccountType = useCallback(async (id: string) => {
     try {
-      // Check if it's a default type (prevent deletion if desired, but here just check logic)
-      if (DEFAULT_TYPES.some(t => t.id === id)) {
-        // Can't delete default types locally
-        return; 
-      }
+      if (DEFAULT_TYPES.some(t => t.id === id)) return; 
+
+      setAccountTypes(prev => prev.filter(t => t.id !== id));
 
       if (user) {
         await api.delete(`/finance/account-types/${id}`);
-        setAccountTypes(prev => prev.filter(t => t.id !== id));
-      } else {
-        setAccountTypes(prev => prev.filter(t => t.id !== id));
       }
     } catch (error) {
       console.error("Failed to delete account type", error);
+      await fetchBackendData();
     }
   }, [user]);
 
   const addTransaction = useCallback(async (data: any) => {
-    setIsLoading(true);
     try {
+      // Optimistic Update
+      const targetAcc = accounts.find(a => a.id === data.accountId);
+      const balanceAt = targetAcc 
+        ? (data.type === 'income' ? targetAcc.balance + data.amount : targetAcc.balance - data.amount)
+        : 0;
+
+      const optimisticTx: Transaction = {
+        id: `temp-${Date.now()}`,
+        ...data,
+        date: data.date || new Date().toISOString(),
+        balanceAt
+      };
+
+      // Update state immediately
+      setTransactions(prev => [optimisticTx, ...prev]);
+      if (targetAcc) {
+        setAccounts(prev => prev.map(acc => 
+          acc.id === data.accountId ? { ...acc, balance: balanceAt } : acc
+        ));
+      }
+
       if (user) {
-        // API
         const response = await api.post('/finance/transactions', {
           ...data,
           date: data.date || new Date().toISOString()
         });
         
-        setTransactions(prev => [response.data, ...prev]);
-        // Re-fetch to ensure consistency
-        await fetchBackendData();
-      } else {
-        // Local Guest Mode logic
-        const targetAcc = accounts.find(a => a.id === data.accountId);
-        const balanceAt = targetAcc 
-          ? (data.type === 'income' ? targetAcc.balance + data.amount : targetAcc.balance - data.amount)
-          : 0;
-
-        const newTransaction: Transaction = {
-          id: Date.now().toString(),
-          ...data,
-          date: data.date || new Date().toISOString(),
-          balanceAt
-        };
-        setTransactions(prev => [newTransaction, ...prev]);
-        setAccounts(prev => prev.map(acc => {
-          if (acc.id === data.accountId) {
-            return {
-              ...acc,
-              balance: balanceAt
-            };
-          }
-          return acc;
-        }));
+        // Replace temp ID with real ID from backend
+        setTransactions(prev => prev.map(tx => tx.id === optimisticTx.id ? { ...response.data, id: response.data._id || response.data.id } : tx));
       }
     } catch (error: any) {
       console.error('Add transaction failed:', error.message);
-    } finally {
-      setIsLoading(false);
+      // Optional: Rollback on error
+      await fetchBackendData();
     }
-  }, [user]);
+  }, [user, accounts]);
 
   const updateTransaction = useCallback(async (id: string, data: any) => {
-    setIsLoading(true);
     try {
+      setTransactions(prev => {
+        const oldTx = prev.find(t => t.id === id);
+        if (!oldTx) return prev;
+
+        // Apply balance changes optimistically
+        setAccounts(prevAccs => {
+          let updated = [...prevAccs];
+          // Rollback old
+          updated = updated.map(acc => {
+            if (acc.id === oldTx.accountId) {
+              return { ...acc, balance: oldTx.type === 'income' ? acc.balance - oldTx.amount : acc.balance + oldTx.amount };
+            }
+            return acc;
+          });
+          // Apply new
+          updated = updated.map(acc => {
+            if (acc.id === data.accountId) {
+              return { ...acc, balance: data.type === 'income' ? acc.balance + data.amount : acc.balance - data.amount };
+            }
+            return acc;
+          });
+          return updated;
+        });
+
+        return prev.map(t => t.id === id ? { ...t, ...data } : t);
+      });
+
       if (user) {
         await api.put(`/finance/transactions/${id}`, data);
-        await fetchBackendData();
-      } else {
-        // Local Logic
-        setTransactions(prev => {
-          const oldTransaction = prev.find(t => t.id === id);
-          if (!oldTransaction) return prev;
-
-          setAccounts(accounts => {
-            // Rollback old transaction
-            let updated = accounts.map(acc => {
-              if (acc.id === oldTransaction.accountId) {
-                return { ...acc, balance: oldTransaction.type === 'income' ? acc.balance - oldTransaction.amount : acc.balance + oldTransaction.amount };
-              }
-              return acc;
-            });
-
-            // Apply new transaction
-            updated = updated.map(acc => {
-              if (acc.id === data.accountId) {
-                return { ...acc, balance: data.type === 'income' ? acc.balance + data.amount : acc.balance - data.amount };
-              }
-              return acc;
-            });
-
-            return updated;
-          });
-
-          return prev.map(t => t.id === id ? { ...t, ...data } : t);
-        });
       }
     } catch (error: any) {
       console.error('Update transaction failed:', error.message);
-    } finally {
-      setIsLoading(false);
+      await fetchBackendData();
     }
   }, [user]);
 
   const addAccount = useCallback(async (data: any) => {
-    setIsLoading(true);
     try {
+      const optimisticAccount: Account = {
+        id: `temp-acc-${Date.now()}`,
+        ...data,
+        cardNumber: `**** **** **** ${Math.floor(1000 + Math.random() * 9000)}`,
+        cardHolder: user?.name ? user.name.toUpperCase() : 'GUEST USER',
+        color: '',
+      };
+      
+      setAccounts(prev => [...prev, optimisticAccount]);
+
       if (user) {
-        await api.post('/finance/accounts', data);
-        await fetchBackendData();
-      } else {
-        const newAccount: Account = {
-          id: `acc-${Date.now()}`,
-          ...data,
-          cardNumber: `**** **** **** ${Math.floor(1000 + Math.random() * 9000)}`,
-          cardHolder: 'GUEST USER',
-          color: '',
-        };
-        setAccounts(prev => [...prev, newAccount]);
+        const { data: savedAccount } = await api.post('/finance/accounts', data);
+        // Replace temp ID
+        setAccounts(prev => prev.map(acc => acc.id === optimisticAccount.id ? { ...savedAccount, id: savedAccount._id || savedAccount.id } : acc));
       }
     } catch (error: any) {
       console.error('Add account failed:', error.message);
-    } finally {
-      setIsLoading(false);
+      await fetchBackendData();
     }
   }, [user]);
 
   const updateAccount = useCallback(async (id: string, data: any) => {
-    setIsLoading(true);
     try {
+      setAccounts(prev => prev.map(acc => acc.id === id ? { ...acc, ...data } : acc));
       if (user) {
         await api.put(`/finance/accounts/${id}`, data);
-        await fetchBackendData();
-      } else {
-        setAccounts(prev => prev.map(acc => acc.id === id ? { ...acc, ...data } : acc));
       }
     } catch (error: any) {
       console.error('Update account failed:', error.message);
-    } finally {
-      setIsLoading(false);
+      await fetchBackendData();
     }
   }, [user]);
 
   const deleteAccount = useCallback(async (id: string) => {
-    setIsLoading(true);
     try {
+      setAccounts(prev => prev.filter(acc => acc.id !== id));
+      setTransactions(prev => prev.filter(t => t.accountId !== id));
+      
       if (user) {
         await api.delete(`/finance/accounts/${id}`);
-        await fetchBackendData();
-      } else {
-        setAccounts(prev => prev.filter(acc => acc.id !== id));
-        setTransactions(prev => prev.filter(t => t.accountId !== id));
       }
     } catch (error: any) {
       console.error('Delete account failed:', error.message);
-    } finally {
-      setIsLoading(false);
+      await fetchBackendData();
     }
   }, [user]);
 
   const deleteTransaction = useCallback(async (id: string) => {
-    setIsLoading(true);
     try {
+      setTransactions(prev => {
+        const transaction = prev.find(t => t.id === id);
+        if (!transaction) return prev;
+
+        setAccounts(accounts => accounts.map(acc => {
+          if (acc.id === transaction.accountId) {
+            return {
+              ...acc,
+              balance: transaction.type === 'income' 
+                ? acc.balance - transaction.amount 
+                : acc.balance + transaction.amount
+            };
+          }
+          return acc;
+        }));
+        
+        return prev.filter(t => t.id !== id);
+      });
+
       if (user) {
         await api.delete(`/finance/transactions/${id}`);
-        await fetchBackendData();
-      } else {
-        // Guest mode: rollback balance and remove transaction
-        setTransactions(prev => {
-          const transaction = prev.find(t => t.id === id);
-          if (!transaction) return prev;
-
-          setAccounts(accounts => accounts.map(acc => {
-            if (acc.id === transaction.accountId) {
-              return {
-                ...acc,
-                balance: transaction.type === 'income' 
-                  ? acc.balance - transaction.amount 
-                  : acc.balance + transaction.amount
-              };
-            }
-            return acc;
-          }));
-          
-          return prev.filter(t => t.id !== id);
-        });
       }
     } catch (error: any) {
       console.error('Delete transaction failed:', error.message);
-    } finally {
-      setIsLoading(false);
+      await fetchBackendData();
     }
   }, [user]);
 
   const bulkDeleteTransactions = useCallback(async (ids: string[]) => {
-    setIsLoading(true);
     try {
+      setTransactions(prev => {
+        const transactionsToDelete = prev.filter(t => ids.includes(t.id));
+        
+        setAccounts(accounts => {
+          let updated = [...accounts];
+          transactionsToDelete.forEach(transaction => {
+            updated = updated.map(acc => {
+              if (acc.id === transaction.accountId) {
+                return {
+                  ...acc,
+                  balance: transaction.type === 'income' 
+                    ? acc.balance - transaction.amount 
+                    : acc.balance + transaction.amount
+                };
+              }
+              return acc;
+            });
+          });
+          return updated;
+        });
+
+        return prev.filter(t => !ids.includes(t.id));
+      });
+
       if (user) {
         await api.delete('/finance/transactions/bulk-delete', { data: { ids } });
-        await fetchBackendData();
-      } else {
-        // Guest mode: rollback balances for all selected transactions
-        setTransactions(prev => {
-          const transactionsToDelete = prev.filter(t => ids.includes(t.id));
-          
-          setAccounts(accounts => {
-            let updated = [...accounts];
-            transactionsToDelete.forEach(transaction => {
-              updated = updated.map(acc => {
-                if (acc.id === transaction.accountId) {
-                  return {
-                    ...acc,
-                    balance: transaction.type === 'income' 
-                      ? acc.balance - transaction.amount 
-                      : acc.balance + transaction.amount
-                  };
-                }
-                return acc;
-              });
-            });
-            return updated;
-          });
-
-          return prev.filter(t => !ids.includes(t.id));
-        });
       }
     } catch (error: any) {
       console.error('Bulk delete failed:', error.message);
-    } finally {
-      setIsLoading(false);
+      await fetchBackendData();
     }
   }, [user]);
 
   const deleteAllTransactions = useCallback(async () => {
-    setIsLoading(true);
     try {
+      setTransactions(prev => {
+        setAccounts(accounts => {
+          let updated = [...accounts];
+          prev.forEach(transaction => {
+            updated = updated.map(acc => {
+              if (acc.id === transaction.accountId) {
+                return {
+                  ...acc,
+                  balance: transaction.type === 'income' 
+                    ? acc.balance - transaction.amount 
+                    : acc.balance + transaction.amount
+                };
+              }
+              return acc;
+            });
+          });
+          return updated;
+        });
+        return [];
+      });
+
       if (user) {
         await api.delete('/finance/transactions/delete-all');
-        await fetchBackendData();
-      } else {
-        // Guest mode: rollback all balances
-        setTransactions(prev => {
-          setAccounts(accounts => {
-            let updated = [...accounts];
-            prev.forEach(transaction => {
-              updated = updated.map(acc => {
-                if (acc.id === transaction.accountId) {
-                  return {
-                    ...acc,
-                    balance: transaction.type === 'income' 
-                      ? acc.balance - transaction.amount 
-                      : acc.balance + transaction.amount
-                  };
-                }
-                return acc;
-              });
-            });
-            return updated;
-          });
-          return [];
-        });
       }
     } catch (error: any) {
       console.error('Delete all failed:', error.message);
-    } finally {
-      setIsLoading(false);
+      await fetchBackendData();
     }
   }, [user]);
 
   const transferFunds = useCallback(async (data: { sourceAccountId: string, targetAccountId: string, amount: number, date: string, description?: string }) => {
-    setIsLoading(true);
     try {
+      const { sourceAccountId, targetAccountId, amount, date, description } = data;
+      
+      const sourceAcc = accounts.find(a => a.id === sourceAccountId);
+      const targetAcc = accounts.find(a => a.id === targetAccountId);
+      
+      if (!sourceAcc || !targetAcc) throw new Error('Account not found');
+
+      const newSourceBalance = sourceAcc.balance - amount;
+      const newTargetBalance = targetAcc.balance + amount;
+
+      const expenseTx: Transaction = {
+        id: `temp-${Date.now()}-1`,
+        accountId: sourceAccountId,
+        amount,
+        type: 'expense',
+        category: 'Transfer',
+        description: description || `Transfer to ${targetAcc.name}`,
+        date: date || new Date().toISOString(),
+        balanceAt: newSourceBalance
+      };
+
+      const incomeTx: Transaction = {
+        id: `temp-${Date.now()}-2`,
+        accountId: targetAccountId,
+        amount,
+        type: 'income',
+        category: 'Transfer',
+        description: description || `Transfer from ${sourceAcc.name}`,
+        date: date || new Date().toISOString(),
+        balanceAt: newTargetBalance
+      };
+
+      setTransactions(prev => [expenseTx, incomeTx, ...prev]);
+      
+      setAccounts(prev => prev.map(acc => {
+        if (acc.id === sourceAccountId) return { ...acc, balance: newSourceBalance };
+        if (acc.id === targetAccountId) return { ...acc, balance: newTargetBalance };
+        return acc;
+      }));
+
       if (user) {
         await api.post('/finance/transfer', data);
-        await fetchBackendData();
-      } else {
-        // Local Guest Mode Transfer
-        const { sourceAccountId, targetAccountId, amount, date, description } = data;
-        
-        const sourceAcc = accounts.find(a => a.id === sourceAccountId);
-        const targetAcc = accounts.find(a => a.id === targetAccountId);
-        
-        if (!sourceAcc || !targetAcc) throw new Error('Account not found');
-
-        const newSourceBalance = sourceAcc.balance - amount;
-        const newTargetBalance = targetAcc.balance + amount;
-
-        const expenseTx: Transaction = {
-          id: `tx-${Date.now()}-1`,
-          accountId: sourceAccountId,
-          amount,
-          type: 'expense',
-          category: 'Transfer',
-          description: description || `Transfer to ${targetAcc.name}`,
-          date: date || new Date().toISOString(),
-          balanceAt: newSourceBalance
-        };
-
-        const incomeTx: Transaction = {
-          id: `tx-${Date.now()}-2`,
-          accountId: targetAccountId,
-          amount,
-          type: 'income',
-          category: 'Transfer',
-          description: description || `Transfer from ${sourceAcc.name}`,
-          date: date || new Date().toISOString(),
-          balanceAt: newTargetBalance
-        };
-
-        setTransactions(prev => [expenseTx, incomeTx, ...prev]);
-        
-        setAccounts(prev => prev.map(acc => {
-          if (acc.id === sourceAccountId) return { ...acc, balance: newSourceBalance };
-          if (acc.id === targetAccountId) return { ...acc, balance: newTargetBalance };
-          return acc;
-        }));
       }
     } catch (error: any) {
       console.error('Transfer failed:', error.message);
+      await fetchBackendData();
       throw error;
-    } finally {
-      setIsLoading(false);
     }
   }, [user, accounts]);
 

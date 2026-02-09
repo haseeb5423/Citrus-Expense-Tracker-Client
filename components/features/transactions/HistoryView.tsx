@@ -34,6 +34,7 @@ export const HistoryView: React.FC<Props> = ({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteMode, setDeleteMode] = useState<'single' | 'bulk' | 'all'>('single');
   const [deleteTargetId, setDeleteTargetId] = useState<string>('');
+  const [sortOrder, setSortOrder] = useState<'latest' | 'oldest'>('latest');
 
   // Debounce search input to prevent lag while typing
   const debouncedSearch = useDebounce(searchTerm, 300);
@@ -44,14 +45,20 @@ export const HistoryView: React.FC<Props> = ({
   }, [transactions]);
 
   const filteredTransactions = useMemo(() => {
-    return transactions.filter(t => {
-      const matchesSearch = t.description.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        t.category.toLowerCase().includes(debouncedSearch.toLowerCase());
-      const matchesType = filterType === 'all' || t.type === filterType;
-      const matchesCategory = selectedCategory === 'all' || t.category === selectedCategory;
-      return matchesSearch && matchesType && matchesCategory;
-    });
-  }, [transactions, debouncedSearch, filterType, selectedCategory]);
+    return transactions
+      .filter(t => {
+        const matchesSearch = t.description.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+          t.category.toLowerCase().includes(debouncedSearch.toLowerCase());
+        const matchesType = filterType === 'all' || t.type === filterType;
+        const matchesCategory = selectedCategory === 'all' || t.category === selectedCategory;
+        return matchesSearch && matchesType && matchesCategory;
+      })
+      .sort((a, b) => {
+        const dateA = new Date(a.date).getTime();
+        const dateB = new Date(b.date).getTime();
+        return sortOrder === 'latest' ? dateB - dateA : dateA - dateB;
+      });
+  }, [transactions, debouncedSearch, filterType, selectedCategory, sortOrder]);
 
   const totalIn = useMemo(() => filteredTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0), [filteredTransactions]);
   const totalOut = useMemo(() => filteredTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0), [filteredTransactions]);
@@ -197,6 +204,15 @@ export const HistoryView: React.FC<Props> = ({
             {categories.map(cat => (
               <option key={cat} value={cat}>{cat === 'all' ? 'All Categories' : cat}</option>
             ))}
+          </select>
+
+          <select
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value as any)}
+            className="flex-1 md:w-40 bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-xl px-4 py-3.5 text-[10px] font-bold uppercase tracking-widest outline-none appearance-none cursor-pointer hover:border-[var(--action-primary)] transition-all"
+          >
+            <option value="latest">Latest First</option>
+            <option value="oldest">Oldest First</option>
           </select>
 
           <button

@@ -12,14 +12,10 @@ export default {
   ],
   safelist: [
     {
-      pattern: /(bg|text|border|shadow)-(blue|emerald|orange|purple|rose|slate)-(100|200|300|400|500|600|700|800|900)/,
-      variants: ['hover', 'group-hover', 'focus'],
+      pattern: /(bg|text|border|shadow)-(blue|emerald|orange|purple|rose|slate|indigo)-(400|500|600)/,
     },
     {
-       pattern: /shadow-(blue|emerald|orange|purple|rose|slate)-500\/20/,
-    },
-    {
-      pattern: /bg-(blue|emerald|orange|purple|rose|slate)-500\/[0-9]+/,
+       pattern: /shadow-(blue|emerald|orange|purple|rose|slate|indigo)-500\/20/,
     }
   ],
   darkMode: 'class',

@@ -4,11 +4,12 @@ import { Sidebar } from './components/layout/Sidebar';
 import { TopHeader } from './components/layout/TopHeader';
 import { AccountCard } from './components/features/accounts/AccountCard';
 import { KpiCards } from './components/features/dashboard/KpiCards';
-import { MainChart } from './components/features/dashboard/MainChart';
+// import { MainChart } from './components/features/dashboard/MainChart';
 import { RecentHistory } from './components/features/dashboard/RecentHistory';
 import { TransactionModal } from './components/features/modals/TransactionModal';
 import { AddVaultModal } from './components/features/modals/AddVaultModal';
 import { TransferModal } from './components/features/modals/TransferModal';
+import { LogoutConfirmationModal } from './components/features/modals/LogoutConfirmationModal';
 import { useFinance } from './hooks/useFinance';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { formatCurrency } from './utils/formatters';
@@ -20,6 +21,7 @@ const VaultsView = lazy(() => import('./components/features/accounts/VaultsView'
 const HistoryView = lazy(() => import('./components/features/transactions/HistoryView').then(module => ({ default: module.HistoryView })));
 const AnalyticsView = lazy(() => import('./components/features/analytics/AnalyticsView').then(module => ({ default: module.AnalyticsView })));
 const SettingsView = lazy(() => import('./components/features/settings/SettingsView').then(module => ({ default: module.SettingsView })));
+const MainChart = lazy(() => import('./components/features/dashboard/MainChart').then(module => ({ default: module.MainChart })));
 const AuthView = lazy(() => import('./components/features/auth/AuthView').then(module => ({ default: module.AuthView })));
 
 const FinanceApp: React.FC = () => {
@@ -37,6 +39,7 @@ const FinanceApp: React.FC = () => {
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [chartView, setChartView] = useState<'weekly' | 'monthly'>('weekly');
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const {
     accounts,
@@ -146,7 +149,7 @@ const FinanceApp: React.FC = () => {
         isOpen={isMobileMenuOpen}
         setIsOpen={setIsMobileMenuOpen}
         user={user}
-        onLogout={logout}
+        onLogout={() => setShowLogoutConfirm(true)}
         onLoginClick={() => setShowAuth(true)}
       />
 
@@ -166,11 +169,20 @@ const FinanceApp: React.FC = () => {
               <KpiCards stats={stats} currencySymbol={currency} />
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <MainChart
-                  data={currentChartData}
-                  view={chartView}
-                  onViewChange={setChartView}
-                />
+                <Suspense fallback={
+                  <div className="lg:col-span-2 h-80 flex items-center justify-center bg-[var(--bg-primary)]/40 rounded-[3rem] border border-[var(--border-default)]">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="w-8 h-8 border-2 border-[var(--action-primary)] border-t-transparent rounded-full animate-spin"></div>
+                      <p className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Initializing Metrics...</p>
+                    </div>
+                  </div>
+                }>
+                  <MainChart
+                    data={currentChartData}
+                    view={chartView}
+                    onViewChange={setChartView}
+                  />
+                </Suspense>
 
                 <div className="flex flex-col gap-6 lg:h-full">
                   <div className="flex justify-between items-center px-1">
@@ -322,6 +334,16 @@ const FinanceApp: React.FC = () => {
         accounts={accounts}
         onSubmit={handleTransferSubmit}
         currencySymbol={currency}
+      />
+
+      <LogoutConfirmationModal
+        isOpen={showLogoutConfirm}
+        onClose={() => setShowLogoutConfirm(false)}
+        onConfirm={() => {
+          logout();
+          setShowLogoutConfirm(false);
+        }}
+        userName={user?.name}
       />
 
       {showAuth && (
