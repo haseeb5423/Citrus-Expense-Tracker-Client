@@ -21,8 +21,8 @@ export const VaultsView: React.FC<Props> = ({ accounts, transactions, formatCurr
   const [selectedAccountId, setSelectedAccountId] = useState(accounts[0]?.id);
   const [deletingVaultId, setDeletingVaultId] = useState<string | null>(null);
 
-  const selectedAccount = accounts.find(a => a.id === selectedAccountId) || accounts[0];
-  const vaultTransactions = transactions.filter(t => t.accountId === selectedAccountId);
+  const selectedAccount = accounts.find(a => (a._id || a.id) === selectedAccountId) || accounts[0];
+  const vaultTransactions = transactions.filter(t => t.accountId === (selectedAccount?._id || selectedAccount?.id));
 
   const handleDelete = async (id: string) => {
     setDeletingVaultId(id);
@@ -90,12 +90,12 @@ export const VaultsView: React.FC<Props> = ({ accounts, transactions, formatCurr
           </div>
         </div>
 
-        <div className="lg:col-span-8 space-y-8">
+        <div className="lg:col-span-8 flex flex-col gap-8">
           {selectedAccount ? (
-            <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="glass p-8 rounded-[2.5rem] relative overflow-hidden group border border-white/10">
-                  <div className="flex justify-between mb-6">
+            <div className="flex flex-col gap-8 h-full">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                <div className="glass p-8 rounded-[2.5rem] relative overflow-hidden group border border-white/10 flex flex-col justify-between min-h-[160px]">
+                  <div className="flex justify-between mb-4">
                     <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500">
                       <TrendingUp size={24} />
                     </div>
@@ -109,8 +109,8 @@ export const VaultsView: React.FC<Props> = ({ accounts, transactions, formatCurr
                   </div>
                 </div>
 
-                <div className="glass p-8 rounded-[2.5rem] relative overflow-hidden group border border-white/10">
-                  <div className="flex justify-between mb-6">
+                <div className="glass p-8 rounded-[2.5rem] relative overflow-hidden group border border-white/10 flex flex-col justify-between min-h-[160px]">
+                  <div className="flex justify-between mb-4">
                     <div className="w-12 h-12 bg-red-500/10 rounded-2xl flex items-center justify-center text-red-500">
                       <TrendingDown size={24} />
                     </div>
@@ -125,41 +125,39 @@ export const VaultsView: React.FC<Props> = ({ accounts, transactions, formatCurr
                 </div>
               </div>
 
-              <div className="glass p-8 rounded-[3rem] border border-white/10">
-                <div className="flex items-center gap-4 mb-8">
-                  <div className="w-10 h-10 rounded-full bg-[var(--action-soft)] flex items-center justify-center text-[var(--action-primary)]">
-                    <Info size={20} />
+              <div className="glass p-10 rounded-[2.5rem] border border-white/10 flex-1 flex flex-col justify-center">
+                <div className="flex items-center gap-4 mb-10">
+                  <div className="w-12 h-12 rounded-2xl bg-[var(--action-soft)] flex items-center justify-center text-[var(--action-primary)] border border-[var(--action-primary)]/10">
+                    <Info size={24} />
                   </div>
-                  <h3 className="text-lg font-bold tracking-tight">Account Details</h3>
+                  <div>
+                    <h3 className="text-xl font-bold tracking-tight">Account Details</h3>
+                    <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-widest">Metadata Telemetry</p>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-                  <div>
-                    <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Status</p>
-                    <p className="text-sm font-bold flex items-center gap-1.5">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-10">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">Status</p>
+                    <p className="text-sm font-bold flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Active
                     </p>
                   </div>
-                  <div>
-                    <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Type</p>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">Type</p>
                     <p className="text-sm font-bold uppercase">{selectedAccount.type}</p>
                   </div>
-                  <div>
-                    <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Owner</p>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">Owner</p>
                     <p className="text-sm font-bold truncate">{selectedAccount.cardHolder}</p>
                   </div>
-                  <div>
-                    <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Protection</p>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">Protection</p>
                     <p className="text-sm font-bold">Encrypted</p>
                   </div>
                 </div>
               </div>
-
-              <div className="space-y-6">
-                <h3 className="text-xs font-black uppercase tracking-[0.3em] text-[var(--text-muted)] px-2">Recent Transactions</h3>
-                <RecentHistory transactions={vaultTransactions} onSeeAll={onSeeAll} currencySymbol={currencySymbol} />
-              </div>
-            </>
+            </div>
           ) : (
             <div className="h-96 glass rounded-[3rem] flex flex-col items-center justify-center text-center p-10 opacity-60">
               <Target size={48} className="text-[var(--text-muted)] mb-4" />
