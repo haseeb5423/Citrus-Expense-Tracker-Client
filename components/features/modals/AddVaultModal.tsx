@@ -46,15 +46,13 @@ export const AddVaultModal: React.FC<Props> = ({ isOpen, onClose, onSubmit, acco
                   />
                </div>
 
-               <div className="space-y-1.5">
+               <div className="space-y-1.5 opacity-50">
                   <label className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-widest text-[var(--text-secondary)] ml-3">
                     <ShieldCheck size={11} /> Starting Balance
                   </label>
-                  <input 
-                    name="balance" type="number" step="0.01" required placeholder="0.00" 
-                    defaultValue={account?.balance}
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-xl px-6 py-4 outline-none font-bold text-xs focus:border-[var(--action-primary)] transition-all shadow-sm" 
-                  />
+                  <div className="w-full bg-[var(--bg-primary)]/50 border border-[var(--border-default)] rounded-xl px-6 py-4 font-bold text-xs text-[var(--text-muted)] italic">
+                    All balances start at 0.00. Add a transaction to fund this vault.
+                  </div>
                </div>
 
                <div className="space-y-1.5">

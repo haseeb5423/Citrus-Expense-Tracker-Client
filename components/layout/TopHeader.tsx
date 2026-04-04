@@ -1,47 +1,50 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Menu, Bell, Plus, ArrowLeft, Check, Clock } from 'lucide-react';
-import { Notification } from '../../types';
+import { 
+  Menu, Plus, ArrowLeft, Check, Clock, Sun, Moon, 
+  User as UserIcon, LogOut, Settings, User 
+} from 'lucide-react';
+import { Notification, UserProfile } from '../../types';
 import { formatDate } from '../../utils/formatters';
 
 interface Props {
   activeTab: string;
+  setActiveTab: (tab: string) => void;
   onMobileMenuOpen: () => void;
   onAddClick: () => void;
   onBack: () => void;
-  notifications: Notification[];
-  onMarkRead: () => void;
+  user: UserProfile | null;
+  onLogout: () => void;
+  onLoginClick?: () => void;
+  isDarkMode: boolean;
+  toggleDarkMode: () => void;
 }
 
 export const TopHeader: React.FC<Props> = React.memo(({
   activeTab,
+  setActiveTab,
   onMobileMenuOpen,
   onAddClick,
   onBack,
-  notifications,
-  onMarkRead
+  user,
+  onLogout,
+  onLoginClick,
+  isDarkMode,
+  toggleDarkMode
 }) => {
   const isDashboard = activeTab === 'dashboard';
-  const [showNotifs, setShowNotifs] = useState(false);
-  const unreadCount = notifications.filter(n => !n.isRead).length;
-  const popoverRef = useRef<HTMLDivElement>(null);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
-        setShowNotifs(false);
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+        setShowProfileMenu(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  const handleToggleNotifs = () => {
-    if (!showNotifs) {
-      onMarkRead();
-    }
-    setShowNotifs(!showNotifs);
-  };
 
   return (
     <header className="h-20 glass flex items-center justify-between px-8 z-30 shrink-0 relative">
@@ -72,62 +75,17 @@ export const TopHeader: React.FC<Props> = React.memo(({
       </div>
 
       <div className="flex items-center gap-2 sm:gap-4">
-        <div className="relative" ref={popoverRef}>
-          <button
-            onClick={handleToggleNotifs}
-            className={`p-2 rounded-xl relative group transition-all ${showNotifs ? 'bg-[var(--action-soft)] text-[var(--action-primary)]' : 'hover:bg-[var(--bg-primary)]'}`}
-          >
-            <Bell size={20} className={showNotifs ? 'text-[var(--action-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--action-primary)] transition-colors'} />
-            {unreadCount > 0 && (
-              <span className="absolute top-2 right-2 w-2 h-2 bg-[var(--action-primary)] rounded-full border-2 border-white animate-bounce"></span>
-            )}
-          </button>
-
-          {/* Notifications Dropdown (Alerts Modal) */}
-          {showNotifs && (
-            <div className="absolute right-0 mt-4 w-80 max-h-[480px] bg-[var(--bg-primary)] glass rounded-[2.5rem] shadow-[0_40px_80px_-15px_rgba(0,0,0,0.5)] border border-white/20 overflow-hidden flex flex-col z-[100] animate-in fade-in zoom-in-95 slide-in-from-top-4 duration-300">
-              <div className="p-6 pb-4 border-b border-[var(--border-default)] flex justify-between items-center bg-white/5">
-                <h4 className="text-sm font-bold uppercase tracking-tighter">Activity Stream</h4>
-                <span className="text-[10px] font-bold px-2 py-0.5 bg-[var(--action-soft)] text-[var(--action-primary)] rounded-lg">
-                  {notifications.length} Total
-                </span>
-              </div>
-              <div className="overflow-y-auto no-scrollbar py-2">
-                {notifications.length === 0 ? (
-                  <div className="p-10 text-center opacity-40">
-                    <Check className="mx-auto mb-2 opacity-50" size={32} />
-                    <p className="text-xs font-bold uppercase tracking-widest">Clear Waters</p>
-                  </div>
-                ) : (
-                  notifications.map(n => (
-                    <div key={n.id} className={`px-6 py-4 hover:bg-[var(--bg-primary)]/40 transition-colors relative group border-b border-transparent last:border-0`}>
-                      <div className="flex gap-4 items-start">
-                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${n.type === 'success' ? 'bg-emerald-100 text-emerald-600' : 'bg-orange-100 text-orange-600'}`}>
-                          <Clock size={14} />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-xs font-bold text-[var(--text-primary)] leading-none mb-1">{n.title}</p>
-                          <p className="text-[10px] text-[var(--text-secondary)] leading-tight truncate">{n.message}</p>
-                          <p className="text-[8px] font-bold text-[var(--text-muted)] uppercase tracking-widest mt-2">{new Date(n.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                        </div>
-                        {!n.isRead && (
-                          <div className="absolute top-1/2 -translate-y-1/2 right-4 w-1.5 h-1.5 bg-[var(--action-primary)] rounded-full shadow-[0_0_8px_var(--action-primary)]"></div>
-                        )}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-              {notifications.length > 0 && (
-                <div className="p-4 border-t border-[var(--border-default)] bg-white/5">
-                  <button className="w-full py-2 text-[9px] font-bold uppercase tracking-[0.2em] text-[var(--text-muted)] hover:text-[var(--action-primary)] transition-colors">
-                    View Archive
-                  </button>
-                </div>
-              )}
-            </div>
+        <button
+          onClick={toggleDarkMode}
+          className="p-2.5 hover:bg-[var(--bg-primary)] rounded-xl text-[var(--text-secondary)] hover:text-[var(--action-primary)] transition-all group"
+          title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+        >
+          {isDarkMode ? (
+            <Sun size={20} className="group-hover:rotate-45 transition-transform" />
+          ) : (
+            <Moon size={20} className="group-hover:-rotate-12 transition-transform" />
           )}
-        </div>
+        </button>
 
         <button
           onClick={onAddClick}
@@ -136,6 +94,72 @@ export const TopHeader: React.FC<Props> = React.memo(({
           <Plus size={18} />
           <span className="hidden md:inline">Add New</span>
         </button>
+
+        <div className="w-px h-6 bg-[var(--border-default)] mx-1" />
+
+        <div className="relative" ref={profileMenuRef}>
+          <button
+            onClick={() => user ? setShowProfileMenu(!showProfileMenu) : onLoginClick?.()}
+            className={`flex items-center gap-2 p-1.5 rounded-2xl transition-all ${showProfileMenu ? 'bg-[var(--action-soft)]' : 'hover:bg-[var(--bg-primary)]'}`}
+          >
+            <div className="relative">
+              {user ? (
+                <img
+                  src={user.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"}
+                  className="w-9 h-9 rounded-xl border-2 border-[var(--action-primary)]/50"
+                  alt={user.name}
+                />
+              ) : (
+                <div className="w-9 h-9 rounded-xl bg-[var(--bg-primary)] flex items-center justify-center text-[var(--text-muted)] border-2 border-dashed border-[var(--border-default)]">
+                  <UserIcon size={18} />
+                </div>
+              )}
+              <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 ${user ? 'bg-[#10b981]' : 'bg-slate-400'} rounded-full border-2 border-white shadow-sm`}></div>
+            </div>
+          </button>
+
+          {showProfileMenu && user && (
+            <div className="absolute right-0 mt-4 w-56 bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-[2rem] shadow-2xl overflow-hidden z-[100] animate-in fade-in zoom-in-95 slide-in-from-top-4 duration-300">
+              <div className="p-5 border-b border-[var(--border-default)] bg-white/5">
+                <p className="text-xs font-bold truncate text-[var(--text-primary)]">{user.name}</p>
+                <p className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest mt-0.5">Citrus Elite</p>
+              </div>
+              <div className="p-2">
+                <button
+                  onClick={() => {
+                    setActiveTab('profile');
+                    setShowProfileMenu(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[var(--action-soft)] text-[var(--text-secondary)] hover:text-[var(--action-primary)] font-bold text-[10px] uppercase tracking-widest transition-all"
+                >
+                  <User size={16} />
+                  My Profile
+                </button>
+                <button
+                  onClick={() => {
+                    setActiveTab('settings');
+                    setShowProfileMenu(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[var(--action-soft)] text-[var(--text-secondary)] hover:text-[var(--action-primary)] font-bold text-[10px] uppercase tracking-widest transition-all"
+                >
+                  <Settings size={16} />
+                  Settings
+                </button>
+                <div className="h-px bg-[var(--border-default)] my-2 mx-2" />
+                <button
+                  onClick={() => {
+                    onLogout();
+                    setShowProfileMenu(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-rose-50 text-[var(--text-muted)] hover:text-rose-500 font-bold text-[10px] uppercase tracking-widest transition-all"
+                >
+                  <LogOut size={16} />
+                  Sign Out
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );

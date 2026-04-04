@@ -80,7 +80,7 @@ export const HistoryView: React.FC<Props> = ({
 
   const handleDownloadCSV = useCallback(() => {
     if (allFilteredTransactions.length === 0) return;
-    const headers = ['Date', 'Description', 'Category', 'Account', 'Type', `Amount (${currencySymbol})`].join(",");
+    const headers = ['Date', 'Description', 'Category', 'Account', 'Type', `Amount (${currencySymbol})`, `Balance After (${currencySymbol})`].join(",");
     const rows = allFilteredTransactions.map(t => {
       const account = accounts.find(a => a.id === t.accountId);
       return [
@@ -89,7 +89,8 @@ export const HistoryView: React.FC<Props> = ({
         t.category,
         account?.name || 'Unknown',
         t.type.toUpperCase(),
-        t.amount
+        t.amount,
+        t.balanceAt || ''
       ].join(",");
     });
     const csvContent = [headers, ...rows].join("\n");
@@ -170,41 +171,41 @@ export const HistoryView: React.FC<Props> = ({
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 fade-in">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
         <div>
-          <h2 className="text-3xl font-bold tracking-tighter mb-2">Transaction History</h2>
-          <p className="text-sm font-semibold text-[var(--text-muted)] uppercase tracking-[0.2em]">Detailed ledger of all movements</p>
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tighter mb-2">Transaction History</h2>
+          <p className="text-[10px] sm:text-xs font-semibold text-[var(--text-muted)] uppercase tracking-[0.2em]">Detailed ledger of all movements</p>
         </div>
 
-        <div className="flex gap-4">
-          <div className="glass px-6 py-3 rounded-2xl flex flex-col justify-center border border-white/10">
-            <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Total In</span>
-            <span className="text-lg font-bold text-emerald-500 tabular-nums">+{formatCurrency(totalIn, currencySymbol).replace(currencySymbol + ' ', '')}</span>
+        <div className="grid grid-cols-2 sm:flex gap-3 sm:gap-4 w-full sm:w-auto">
+          <div className="glass px-4 sm:px-6 py-3 rounded-2xl flex flex-col justify-center border border-white/10 shrink-0">
+            <span className="text-[9px] sm:text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Total In</span>
+            <span className="text-base sm:text-lg font-bold text-emerald-500 tabular-nums">+{formatCurrency(totalIn, currencySymbol).replace(currencySymbol + ' ', '')}</span>
           </div>
-          <div className="glass px-6 py-3 rounded-2xl flex flex-col justify-center border border-white/10">
-            <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Total Out</span>
-            <span className="text-lg font-bold text-red-500 tabular-nums">-{formatCurrency(totalOut, currencySymbol).replace(currencySymbol + ' ', '')}</span>
+          <div className="glass px-4 sm:px-6 py-3 rounded-2xl flex flex-col justify-center border border-white/10 shrink-0">
+            <span className="text-[9px] sm:text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Total Out</span>
+            <span className="text-base sm:text-lg font-bold text-red-500 tabular-nums">-{formatCurrency(totalOut, currencySymbol).replace(currencySymbol + ' ', '')}</span>
           </div>
         </div>
       </div>
 
-      <div className="glass p-4 rounded-[2rem] border border-white/10 flex flex-col md:flex-row gap-4 items-center">
-        <div className="relative flex-1 w-full">
-          <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={18} />
+      <div className="glass p-3 sm:p-4 rounded-[1.5rem] sm:rounded-[2rem] border border-white/10 flex flex-col lg:flex-row gap-3 sm:gap-4 items-stretch lg:items-center">
+        <div className="relative flex-1">
+          <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={16} />
           <input
             type="text"
-            placeholder="Search descriptions or categories..."
+            placeholder="Search history..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-xl pl-12 pr-6 py-3.5 text-xs font-bold outline-none focus:border-[var(--action-primary)] transition-all shadow-sm"
+            className="w-full bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-xl pl-12 pr-6 py-3 sm:py-3.5 text-xs font-bold outline-none focus:border-[var(--action-primary)] transition-all shadow-sm"
           />
         </div>
 
-        <div className="flex gap-3 w-full md:w-auto">
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap lg:flex-nowrap gap-2 sm:gap-3">
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value as any)}
-            className="flex-1 md:w-40 bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-xl px-4 py-3.5 text-[10px] font-bold uppercase tracking-widest outline-none appearance-none cursor-pointer hover:border-[var(--action-primary)] transition-all"
+            className="bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-xl px-3 sm:px-4 py-3 sm:py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest outline-none appearance-none cursor-pointer hover:border-[var(--action-primary)] transition-all"
           >
             <option value="all">All Flows</option>
             <option value="income">Money In</option>
@@ -214,26 +215,26 @@ export const HistoryView: React.FC<Props> = ({
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="flex-1 md:w-48 bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-xl px-4 py-3.5 text-[10px] font-bold uppercase tracking-widest outline-none appearance-none cursor-pointer hover:border-[var(--action-primary)] transition-all"
+            className="bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-xl px-3 sm:px-4 py-3 sm:py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest outline-none appearance-none cursor-pointer hover:border-[var(--action-primary)] transition-all min-w-0"
           >
             {categories.map(cat => (
-              <option key={cat} value={cat}>{cat === 'all' ? 'All Categories' : cat}</option>
+              <option key={cat} value={cat}>{cat === 'all' ? 'Categories' : cat}</option>
             ))}
           </select>
 
           <select
             value={sortOrder}
             onChange={(e) => setSortOrder(e.target.value as any)}
-            className="flex-1 md:w-40 bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-xl px-4 py-3.5 text-[10px] font-bold uppercase tracking-widest outline-none appearance-none cursor-pointer hover:border-[var(--action-primary)] transition-all"
+            className="bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-xl px-3 sm:px-4 py-3 sm:py-3.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest outline-none appearance-none cursor-pointer hover:border-[var(--action-primary)] transition-all"
           >
-            <option value="latest">Latest First</option>
-            <option value="oldest">Oldest First</option>
+            <option value="latest">Latest</option>
+            <option value="oldest">Oldest</option>
           </select>
 
           <button
             onClick={handleDownloadCSV}
             title="Download CSV Report"
-            className="p-3.5 bg-[var(--action-soft)] text-[var(--action-primary)] rounded-xl hover:bg-[var(--action-primary)] hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center justify-center p-3 bg-[var(--action-soft)] text-[var(--action-primary)] rounded-xl hover:bg-[var(--action-primary)] hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={allFilteredTransactions.length === 0}
           >
             <Download size={18} />
@@ -242,28 +243,28 @@ export const HistoryView: React.FC<Props> = ({
       </div>
 
       {selectedIds.size > 0 && (
-        <div className="glass p-4 rounded-2xl border border-orange-500/30 bg-orange-500/5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center">
+        <div className="glass p-4 rounded-2xl border border-orange-500/30 bg-orange-500/5 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center shrink-0">
               <Trash2 className="text-orange-500" size={18} />
             </div>
             <div>
-              <p className="text-sm font-bold text-[var(--text-primary)]">{selectedIds.size} transaction{selectedIds.size > 1 ? 's' : ''} selected</p>
-              <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Ready for deletion</p>
+              <p className="text-sm font-bold text-[var(--text-primary)]">{selectedIds.size} selected</p>
+              <p className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Ready for removal</p>
             </div>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-2 w-full sm:w-auto">
             <button
               onClick={() => setSelectedIds(new Set())}
-              className="px-4 py-2 bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-[var(--bg-secondary)] transition-all"
+              className="flex-1 sm:px-4 py-2.5 bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-xl text-[10px] font-bold uppercase tracking-wider hover:bg-[var(--bg-secondary)] transition-all"
             >
-              Clear Selection
+              Cancel
             </button>
             <button
               onClick={handleBulkDeleteClick}
-              className="px-4 py-2 bg-orange-500/10 text-orange-500 border border-orange-500/30 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-orange-500 hover:text-white transition-all"
+              className="flex-2 sm:px-4 py-2.5 bg-orange-500/10 text-orange-500 border border-orange-500/30 rounded-xl text-[10px] font-bold uppercase tracking-wider hover:bg-orange-500 hover:text-white transition-all"
             >
-              Delete Selected
+              Confirm Delete
             </button>
           </div>
         </div>
@@ -271,13 +272,13 @@ export const HistoryView: React.FC<Props> = ({
 
       <div className="glass rounded-[3rem] overflow-hidden border border-white/10">
         {allFilteredTransactions.length > 0 && (
-          <div className="p-6 border-b border-[var(--border-default)] flex justify-end">
+          <div className="p-4 sm:p-6 border-b border-[var(--border-default)] flex justify-end">
             <button
               onClick={handleDeleteAllClick}
-              className="px-4 py-2 bg-red-500/10 text-red-500 border border-red-500/30 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-red-500 hover:text-white transition-all flex items-center gap-2"
+              className="px-4 py-2.5 bg-red-500/5 text-red-500 border border-red-500/20 rounded-xl text-[9px] sm:text-xs font-bold uppercase tracking-wider hover:bg-red-500 hover:text-white transition-all flex items-center gap-2"
             >
               <Trash2 size={14} />
-              Delete All Transactions
+              Reset All
             </button>
           </div>
         )}
@@ -285,7 +286,7 @@ export const HistoryView: React.FC<Props> = ({
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-white/5 border-b border-[var(--border-default)]">
-                <th className="px-8 py-6 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-[0.2em]">
+                <th className="px-4 sm:px-8 py-4 sm:py-6 text-[9px] sm:text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-[0.2em]">
                   <input
                     type="checkbox"
                     checked={allFilteredTransactions.length > 0 && selectedIds.size === allFilteredTransactions.length}
@@ -293,12 +294,13 @@ export const HistoryView: React.FC<Props> = ({
                     className="w-4 h-4 rounded border-2 border-[var(--border-default)] bg-[var(--bg-primary)] checked:bg-[var(--action-primary)] checked:border-[var(--action-primary)] cursor-pointer transition-all"
                   />
                 </th>
-                <th className="px-8 py-6 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-[0.2em]">Transaction</th>
-                <th className="px-8 py-6 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-[0.2em] hidden md:table-cell">Category</th>
-                <th className="px-8 py-6 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-[0.2em] hidden md:table-cell">Account</th>
-                <th className="px-8 py-6 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-[0.2em] hidden md:table-cell">Date</th>
-                <th className="px-8 py-6 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-[0.2em] text-right">Amount</th>
-                <th className="px-8 py-6 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-[0.2em] text-right">Action</th>
+                <th className="px-4 sm:px-8 py-4 sm:py-6 text-[9px] sm:text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-[0.2em]">Activity</th>
+                <th className="px-8 py-6 text-[9px] sm:text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-[0.2em] hidden lg:table-cell">Category</th>
+                <th className="px-8 py-6 text-[9px] sm:text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-[0.2em] hidden md:table-cell">Wallet</th>
+                <th className="px-8 py-6 text-[9px] sm:text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-[0.2em] hidden md:table-cell">Timeline</th>
+                <th className="px-4 sm:px-8 py-4 sm:py-6 text-[9px] sm:text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-[0.2em] text-right">Flow</th>
+                <th className="px-8 py-6 text-[9px] sm:text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-[0.2em] text-right hidden lg:table-cell">Balance</th>
+                <th className="px-4 sm:px-8 py-4 sm:py-6 text-[9px] sm:text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-[0.2em] text-right">Manage</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border-default)]">
@@ -307,7 +309,7 @@ export const HistoryView: React.FC<Props> = ({
                 const isSelected = selectedIds.has(t.id);
                 return (
                   <tr key={t.id} className={`hover:bg-[var(--bg-primary)]/40 transition-colors group ${isSelected ? 'bg-[var(--action-soft)]' : ''}`}>
-                    <td className="px-8 py-6">
+                    <td className="px-4 sm:px-8 py-4 sm:py-6">
                       <input
                         type="checkbox"
                         checked={isSelected}
@@ -315,21 +317,21 @@ export const HistoryView: React.FC<Props> = ({
                         className="w-4 h-4 rounded border-2 border-[var(--border-default)] bg-[var(--bg-primary)] checked:bg-[var(--action-primary)] checked:border-[var(--action-primary)] cursor-pointer transition-all"
                       />
                     </td>
-                    <td className="px-8 py-6">
-                      <div className="flex items-center gap-4">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${t.type === 'income' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-orange-500/10 text-orange-500'
+                    <td className="px-4 sm:px-8 py-4 sm:py-6">
+                      <div className="flex items-center gap-3 sm:gap-4">
+                        <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 ${t.type === 'income' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-orange-500/10 text-orange-500'
                           }`}>
-                          {t.type === 'income' ? <ArrowUpRight size={18} /> : <ArrowDownLeft size={18} />}
+                          {t.type === 'income' ? <ArrowUpRight size={16} /> : <ArrowDownLeft size={16} />}
                         </div>
-                        <div>
-                          <p className="text-sm font-bold text-[var(--text-primary)]">{t.description}</p>
-                          <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-tighter">
-                            {t.balanceAt !== undefined ? `After: ${formatCurrency(t.balanceAt, currencySymbol)}` : 'Verified Stream'}
+                        <div className="min-w-0">
+                          <p className="text-xs sm:text-sm font-bold text-[var(--text-primary)] truncate">{t.description}</p>
+                          <p className="text-[8px] sm:text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-tighter">
+                            {account?.name || 'Unknown'} • {formatDate(t.date)}
                           </p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-8 py-6 hidden md:table-cell">
+                    <td className="px-8 py-6 hidden lg:table-cell">
                       <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[var(--bg-primary)] rounded-full border border-[var(--border-default)] text-[9px] font-bold text-[var(--text-secondary)] uppercase">
                         <Tag size={10} /> {t.category}
                       </span>
@@ -346,28 +348,33 @@ export const HistoryView: React.FC<Props> = ({
                         <span className="text-xs font-semibold">{formatDate(t.date)}</span>
                       </div>
                     </td>
-                    <td className="px-8 py-6 text-right">
-                      <span className={`text-sm font-bold tabular-nums ${t.type === 'income' ? 'text-emerald-500' : 'text-[var(--text-primary)]'
+                    <td className="px-4 sm:px-8 py-4 sm:py-6 text-right">
+                      <span className={`text-xs sm:text-sm font-bold tabular-nums ${t.type === 'income' ? 'text-emerald-500' : 'text-[var(--text-primary)]'
                         }`}>
                         {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount, currencySymbol).replace(currencySymbol + ' ', '')}
-                        <span className="text-[10px] ml-1 opacity-50 font-bold">{currencySymbol}</span>
+                        <span className="text-[8px] sm:text-[10px] ml-1 opacity-50 font-bold">{currencySymbol}</span>
                       </span>
                     </td>
-                    <td className="px-8 py-6 text-right">
-                      <div className="flex justify-end gap-2">
+                    <td className="px-8 py-6 text-right hidden lg:table-cell">
+                      <span className="text-xs sm:text-sm font-black tabular-nums text-[var(--text-secondary)]">
+                        {t.balanceAt !== undefined ? formatCurrency(t.balanceAt, currencySymbol) : '—'}
+                      </span>
+                    </td>
+                    <td className="px-4 sm:px-8 py-4 sm:py-6 text-right">
+                      <div className="flex justify-end gap-1 sm:gap-2">
                         <button
                           onClick={() => onEdit(t)}
-                          className="p-2 text-[var(--text-muted)] hover:text-[var(--action-primary)] hover:bg-[var(--action-soft)] rounded-lg transition-all"
-                          title="Edit Entry"
+                          className="p-1.5 sm:p-2 text-[var(--text-muted)] hover:text-[var(--action-primary)] hover:bg-[var(--action-soft)] rounded-lg transition-all"
+                          title="Edit"
                         >
-                          <Edit2 size={16} />
+                          <Edit2 size={14} />
                         </button>
                         <button
                           onClick={() => handleDeleteClick(t.id)}
-                          className="p-2 text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
-                          title="Delete Entry"
+                          className="p-1.5 sm:p-2 text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                          title="Delete"
                         >
-                          <Trash2 size={16} />
+                          <Trash2 size={14} />
                         </button>
                       </div>
                     </td>
@@ -389,7 +396,7 @@ export const HistoryView: React.FC<Props> = ({
         </div>
 
         {allFilteredTransactions.length > 0 && (
-          <div className="p-8 border-t border-[var(--border-default)] flex flex-col sm:flex-row items-center justify-between gap-6 bg-white/5">
+          <div className="p-4 sm:p-6 lg:p-8 border-t border-[var(--border-default)] flex flex-col sm:flex-row items-center justify-between gap-6 bg-white/5">
             <div className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest order-2 sm:order-1">
               Showing <span className="text-[var(--text-primary)]">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> to <span className="text-[var(--text-primary)]">{Math.min(currentPage * ITEMS_PER_PAGE, allFilteredTransactions.length)}</span> of <span className="text-[var(--text-primary)]">{allFilteredTransactions.length}</span> results
             </div>

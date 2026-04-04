@@ -7,8 +7,6 @@ import { UserProfile } from '../../types';
 interface Props {
   activeTab: string;
   setActiveTab: (tab: string) => void;
-  isDarkMode: boolean;
-  toggleDarkMode: () => void;
   isCollapsed: boolean;
   setIsCollapsed: (collapsed: boolean) => void;
   isOpen?: boolean;
@@ -21,8 +19,6 @@ interface Props {
 export const Sidebar: React.FC<Props> = ({
   activeTab,
   setActiveTab,
-  isDarkMode,
-  toggleDarkMode,
   isCollapsed,
   setIsCollapsed,
   isOpen,
@@ -86,54 +82,7 @@ export const Sidebar: React.FC<Props> = ({
           ))}
         </nav>
 
-        <div className="mt-auto pt-6 border-t border-[var(--border-default)] space-y-4 shrink-0">
-          <div
-            onClick={!user ? onLoginClick : undefined}
-            className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 p-3'} rounded-[1.75rem] glass-glow bg-white/10 border border-white/20 shadow-xl overflow-hidden cursor-pointer hover:bg-white/20 transition-all`}
-          >
-            <div className="relative shrink-0">
-              {user ? (
-                <img
-                  src={user.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"}
-                  className="w-10 h-10 rounded-2xl border-2 border-[var(--action-primary)]/50 shadow-sm"
-                  alt="User"
-                />
-              ) : (
-                <div className="w-10 h-10 rounded-2xl bg-[var(--bg-primary)] flex items-center justify-center text-[var(--text-muted)] border-2 border-dashed border-[var(--border-default)]">
-                  <UserIcon size={20} />
-                </div>
-              )}
-              <div className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 ${user ? 'bg-[#10b981]' : 'bg-slate-400'} rounded-full border-2 border-white shadow-sm`}></div>
-            </div>
-            {!isCollapsed && (
-              <div className="flex flex-col min-w-0 flex-1">
-                <span className="text-xs font-bold truncate text-[var(--text-primary)]">
-                  {user ? user.name : 'Guest User'}
-                </span>
-                <span className={`text-[9px] font-bold uppercase tracking-tighter w-fit px-1.5 rounded ${user ? 'text-[var(--action-primary)] bg-[var(--action-soft)]' : 'text-slate-500 bg-slate-100'}`}>
-                  {user ? 'Citrus Elite' : 'Local Mode'}
-                </span>
-              </div>
-            )}
-            {!isCollapsed && user && (
-              <button
-                onClick={(e) => { e.stopPropagation(); onLogout(); }}
-                className="text-[var(--text-muted)] hover:text-[var(--error)] transition-colors p-2 hover:bg-rose-50 rounded-xl"
-                title="Logout"
-              >
-                <LogOut size={16} />
-              </button>
-            )}
-          </div>
-          {!user && !isCollapsed && (
-            <button
-              onClick={onLoginClick}
-              className="w-full py-2.5 text-[10px] font-bold uppercase tracking-widest text-[var(--action-primary)] hover:bg-[var(--action-soft)] rounded-xl border border-[var(--action-primary)]/20 transition-all"
-            >
-              Sign In to Sync
-            </button>
-          )}
-        </div>
+
       </aside>
     </>
   );

@@ -24,6 +24,7 @@ const AnalyticsView = lazy(() => import('./components/features/analytics/Analyti
 const SettingsView = lazy(() => import('./components/features/settings/SettingsView').then(module => ({ default: module.SettingsView })));
 const MainChart = lazy(() => import('./components/features/dashboard/MainChart').then(module => ({ default: module.MainChart })));
 const AuthView = lazy(() => import('./components/features/auth/AuthView').then(module => ({ default: module.AuthView })));
+const ProfileView = lazy(() => import('./components/features/profile/ProfileView').then(module => ({ default: module.ProfileView })));
 
 const FinanceApp: React.FC = () => {
   const { user, loading, logout, showAuth, setShowAuth } = useAuth();
@@ -74,11 +75,8 @@ const FinanceApp: React.FC = () => {
   if (loading) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-[var(--bg-primary)]">
-        <div className="flex flex-col items-center gap-6">
-          <div className="w-16 h-16 rounded-2xl bg-[var(--action-primary)] animate-pulse flex items-center justify-center">
-            <ChevronRightIcon className="text-white animate-spin" />
-          </div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-[var(--text-muted)]">Citrus Synchronizing</p>
+        <div className="animate-pulse">
+           <span className="text-xl font-black italic tracking-tighter text-[var(--action-primary)]">CITRUS</span>
         </div>
       </div>
     );
@@ -110,16 +108,15 @@ const FinanceApp: React.FC = () => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const name = formData.get('name') as string;
-    const balance = parseFloat(formData.get('balance') as string);
     const type = formData.get('type') as string;
 
-    if (!name || isNaN(balance)) return;
+    if (!name) return;
 
     if (editingAccount) {
-      updateAccount(editingAccount.id, { name, balance, type });
+      updateAccount(editingAccount.id, { name, type });
       setEditingAccount(null);
     } else {
-      addAccount({ name, balance, type });
+      addAccount({ name, type, balance: 0 });
       setShowAddVault(false);
     }
   };
@@ -140,8 +137,6 @@ const FinanceApp: React.FC = () => {
       <Sidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        isDarkMode={isDarkMode}
-        toggleDarkMode={() => setIsDarkMode(!isDarkMode)}
         isCollapsed={isSidebarCollapsed}
         setIsCollapsed={setIsSidebarCollapsed}
         isOpen={isMobileMenuOpen}
@@ -154,14 +149,18 @@ const FinanceApp: React.FC = () => {
       <main className="flex-1 flex flex-col min-w-0">
         <TopHeader
           activeTab={activeTab}
+          setActiveTab={setActiveTab}
           onMobileMenuOpen={() => setIsMobileMenuOpen(true)}
           onAddClick={() => setShowAddTransaction(true)}
           onBack={() => setActiveTab('dashboard')}
-          notifications={notifications}
-          onMarkRead={markAllAsRead}
+          user={user}
+          onLogout={() => setShowLogoutConfirm(true)}
+          onLoginClick={() => setShowAuth(true)}
+          isDarkMode={isDarkMode}
+          toggleDarkMode={() => setIsDarkMode(!isDarkMode)}
         />
 
-        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 custom-scrollbar">
           {activeTab === 'dashboard' && (
             <div className="max-w-7xl mx-auto space-y-8 fade-in">
               {isLoading ? (
@@ -298,6 +297,24 @@ const FinanceApp: React.FC = () => {
                 onAddType={addAccountType}
                 onDeleteType={deleteAccountType}
                 onResetData={resetData}
+              />
+            </Suspense>
+          )}
+
+          {activeTab === 'profile' && (
+            <Suspense fallback={
+              <div className="flex items-center justify-center h-96">
+                <div className="text-center">
+                  <ChevronRightIcon className="animate-spin text-[var(--action-primary)] mx-auto mb-2" size={32} />
+                  <p className="text-sm text-[var(--text-muted)] font-semibold">Loading Profile...</p>
+                </div>
+              </div>
+            }>
+              <ProfileView
+                user={user}
+                transactions={transactions}
+                accounts={accounts}
+                currencySymbol={currency}
               />
             </Suspense>
           )}

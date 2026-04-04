@@ -230,13 +230,18 @@ export const useFinance = () => {
     try {
       // Optimistic Update
       const targetAcc = accounts.find(a => a.id === data.accountId);
-      const balanceAt = targetAcc 
-        ? (data.type === 'income' ? targetAcc.balance + data.amount : targetAcc.balance - data.amount)
-        : 0;
+      
+      const currentBalance = Number(targetAcc?.balance || 0);
+      const txAmount = Number(data.amount);
+      
+      const balanceAt = Number(data.type === 'income' 
+        ? currentBalance + txAmount 
+        : currentBalance - txAmount);
 
       const optimisticTx: Transaction = {
         id: `temp-${Date.now()}`,
         ...data,
+        amount: txAmount,
         date: data.date || new Date().toISOString(),
         balanceAt
       };
@@ -277,14 +282,28 @@ export const useFinance = () => {
           // Rollback old
           updated = updated.map(acc => {
             if (acc.id === oldTx.accountId) {
-              return { ...acc, balance: oldTx.type === 'income' ? acc.balance - oldTx.amount : acc.balance + oldTx.amount };
+              const currentBal = Number(acc.balance);
+              const oldAmt = Number(oldTx.amount);
+              return { 
+                ...acc, 
+                balance: oldTx.type === 'income' 
+                  ? Number(currentBal - oldAmt) 
+                  : Number(currentBal + oldAmt) 
+              };
             }
             return acc;
           });
           // Apply new
+          const newAmt = Number(data.amount);
           updated = updated.map(acc => {
             if (acc.id === data.accountId) {
-              return { ...acc, balance: data.type === 'income' ? acc.balance + data.amount : acc.balance - data.amount };
+              const currentBal = Number(acc.balance);
+              return { 
+                ...acc, 
+                balance: data.type === 'income' 
+                  ? Number(currentBal + newAmt) 
+                  : Number(currentBal - newAmt) 
+              };
             }
             return acc;
           });
@@ -360,11 +379,13 @@ export const useFinance = () => {
 
         setAccounts(accounts => accounts.map(acc => {
           if (acc.id === transaction.accountId) {
+            const currentBal = Number(acc.balance);
+            const amt = Number(transaction.amount);
             return {
               ...acc,
               balance: transaction.type === 'income' 
-                ? acc.balance - transaction.amount 
-                : acc.balance + transaction.amount
+                ? Number(currentBal - amt) 
+                : Number(currentBal + amt)
             };
           }
           return acc;
@@ -392,11 +413,13 @@ export const useFinance = () => {
           transactionsToDelete.forEach(transaction => {
             updated = updated.map(acc => {
               if (acc.id === transaction.accountId) {
+                const currentBal = Number(acc.balance);
+                const amt = Number(transaction.amount);
                 return {
                   ...acc,
                   balance: transaction.type === 'income' 
-                    ? acc.balance - transaction.amount 
-                    : acc.balance + transaction.amount
+                    ? Number(currentBal - amt) 
+                    : Number(currentBal + amt)
                 };
               }
               return acc;
@@ -425,11 +448,13 @@ export const useFinance = () => {
           prev.forEach(transaction => {
             updated = updated.map(acc => {
               if (acc.id === transaction.accountId) {
+                const currentBal = Number(acc.balance);
+                const amt = Number(transaction.amount);
                 return {
                   ...acc,
                   balance: transaction.type === 'income' 
-                    ? acc.balance - transaction.amount 
-                    : acc.balance + transaction.amount
+                    ? Number(currentBal - amt) 
+                    : Number(currentBal + amt)
                 };
               }
               return acc;
@@ -457,14 +482,18 @@ export const useFinance = () => {
       const targetAcc = accounts.find(a => a.id === targetAccountId);
       
       if (!sourceAcc || !targetAcc) throw new Error('Account not found');
+      
+      const sourceBal = Number(sourceAcc.balance);
+      const targetBal = Number(targetAcc.balance);
+      const transferAmt = Number(amount);
 
-      const newSourceBalance = sourceAcc.balance - amount;
-      const newTargetBalance = targetAcc.balance + amount;
+      const newSourceBalance = Number(sourceBal - transferAmt);
+      const newTargetBalance = Number(targetBal + transferAmt);
 
       const expenseTx: Transaction = {
         id: `temp-${Date.now()}-1`,
         accountId: sourceAccountId,
-        amount,
+        amount: transferAmt,
         type: 'expense',
         category: 'Transfer',
         description: description || `Transfer to ${targetAcc.name}`,
@@ -475,7 +504,7 @@ export const useFinance = () => {
       const incomeTx: Transaction = {
         id: `temp-${Date.now()}-2`,
         accountId: targetAccountId,
-        amount,
+        amount: transferAmt,
         type: 'income',
         category: 'Transfer',
         description: description || `Transfer from ${sourceAcc.name}`,
@@ -508,12 +537,10 @@ export const useFinance = () => {
         await api.delete('/finance/reset');
         await fetchBackendData();
       } else {
-        localStorage.removeItem('nexus_accounts');
-        localStorage.removeItem('nexus_transactions');
-        localStorage.removeItem('nexus_account_types');
-        setAccounts([]);
+        localStorage.removeItem(GUEST_DATA_KEY); // Use the constant
+        setAccounts(INITIAL_ACCOUNTS);
         setTransactions([]);
-        setAccountTypes([]);
+        setAccountTypes(DEFAULT_TYPES);
       }
     } catch (error: any) {
       console.error('Reset data failed:', error.message);
