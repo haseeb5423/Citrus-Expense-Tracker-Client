@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { X, CheckCircle2, Wallet, Tag, FileText, Calendar, Loader2 } from 'lucide-react';
+import { X, CheckCircle2, Wallet, Tag, FileText, Calendar } from 'lucide-react';
 import { Account, Transaction } from '../../../types';
 import { INITIAL_CATEGORIES } from '../../../constants';
 import { DatePicker } from '../../ui/DatePicker';
@@ -12,10 +12,9 @@ interface Props {
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   transaction?: Transaction | null;
   currencySymbol: string;
-  isSubmitting?: boolean;
 }
 
-export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, accounts, onSubmit, transaction, currencySymbol, isSubmitting }) => {
+export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, accounts, onSubmit, transaction, currencySymbol }) => {
   const [date, setDate] = useState(transaction?.date || new Date().toISOString());
 
   useEffect(() => {
@@ -125,17 +124,10 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, accounts, o
 
             <button
               type="submit"
-              disabled={isSubmitting}
-              className="w-full group bg-gradient-to-r from-[var(--action-primary)] to-[#fbbf24] text-white py-5 rounded-2xl font-bold uppercase tracking-[0.15em] shadow-xl shadow-orange-500/20 hover:shadow-orange-500/40 hover:scale-[1.01] active:scale-[0.98] transition-all flex items-center justify-center gap-3 mt-4 disabled:opacity-70"
+              className="w-full group bg-gradient-to-r from-[var(--action-primary)] to-[#fbbf24] text-white py-5 rounded-2xl font-bold uppercase tracking-[0.15em] shadow-xl shadow-orange-500/20 hover:shadow-orange-500/40 hover:scale-[1.01] active:scale-[0.98] transition-all flex items-center justify-center gap-3 mt-4"
             >
-              {isSubmitting ? (
-                <Loader2 size={18} className="animate-spin" />
-              ) : (
-                <>
-                  {transaction ? 'Update Record' : 'Save Transaction'}
-                  <CheckCircle2 size={18} className="group-hover:rotate-12 transition-transform" />
-                </>
-              )}
+              {transaction ? 'Update Record' : 'Save Transaction'}
+              <CheckCircle2 size={18} className="group-hover:rotate-12 transition-transform" />
             </button>
           </form>
         </div>

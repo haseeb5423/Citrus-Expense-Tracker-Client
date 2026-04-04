@@ -72,8 +72,6 @@ const FinanceApp: React.FC = () => {
     document.body.className = isDarkMode ? 'theme-dark' : 'theme-light';
   }, [isDarkMode]);
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
   if (loading) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-[var(--bg-primary)]">
@@ -84,9 +82,7 @@ const FinanceApp: React.FC = () => {
     );
   }
 
-
-
-  const handleTransactionSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleTransactionSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const type = formData.get('type') as 'income' | 'expense';
@@ -99,21 +95,16 @@ const FinanceApp: React.FC = () => {
 
     if (isNaN(amount) || amount <= 0) return;
 
-    setIsSubmitting(true);
-    try {
-      if (editingTransaction) {
-        await updateTransaction(editingTransaction.id, { type, amount, accountId, category, description, date });
-        setEditingTransaction(null);
-      } else {
-        await addTransaction({ type, amount, accountId, category, description, date });
-        setShowAddTransaction(false);
-      }
-    } finally {
-      setIsSubmitting(false);
+    if (editingTransaction) {
+      updateTransaction(editingTransaction.id, { type, amount, accountId, category, description, date });
+      setEditingTransaction(null);
+    } else {
+      addTransaction({ type, amount, accountId, category, description, date });
+      setShowAddTransaction(false);
     }
   };
 
-  const handleVaultSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleVaultSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const name = formData.get('name') as string;
@@ -121,29 +112,21 @@ const FinanceApp: React.FC = () => {
 
     if (!name) return;
 
-    setIsSubmitting(true);
-    try {
-      if (editingAccount) {
-        await updateAccount(editingAccount.id, { name, type });
-        setEditingAccount(null);
-      } else {
-        await addAccount({ name, type, balance: 0 });
-        setShowAddVault(false);
-      }
-    } finally {
-      setIsSubmitting(false);
+    if (editingAccount) {
+      updateAccount(editingAccount.id, { name, type });
+      setEditingAccount(null);
+    } else {
+      addAccount({ name, type, balance: 0 });
+      setShowAddVault(false);
     }
   };
 
   const handleTransferSubmit = async (data: any) => {
-    setIsSubmitting(true);
     try {
       await transferFunds(data);
       setShowTransferModal(false);
     } catch (error) {
       console.error("Transfer failed", error);
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -349,7 +332,6 @@ const FinanceApp: React.FC = () => {
           onSubmit={handleTransactionSubmit}
           transaction={editingTransaction}
           currencySymbol={currency}
-          isSubmitting={isSubmitting}
         />
 
         <AddVaultModal
@@ -361,7 +343,6 @@ const FinanceApp: React.FC = () => {
           onSubmit={handleVaultSubmit}
           account={editingAccount}
           accountTypes={accountTypes}
-          isSubmitting={isSubmitting}
         />
 
         <TransferModal
@@ -370,7 +351,6 @@ const FinanceApp: React.FC = () => {
           accounts={accounts}
           onSubmit={handleTransferSubmit}
           currencySymbol={currency}
-          isSubmitting={isSubmitting}
         />
 
         <LogoutConfirmationModal
@@ -400,7 +380,24 @@ const FinanceApp: React.FC = () => {
       }
 
       {/* Loading Overlay */}
-      {/* Removed Global Loading Overlay */}
+      {
+        isLoading && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[200]">
+            <div className="glass rounded-3xl border border-white/10 p-8 flex flex-col items-center gap-4 animate-scale-in">
+              <div className="relative w-16 h-16">
+                <div className="absolute inset-0 rounded-2xl bg-[var(--action-primary)] animate-pulse"></div>
+                <div className="absolute inset-2 rounded-xl bg-[var(--bg-primary)] flex items-center justify-center">
+                  <div className="w-8 h-8 border-4 border-[var(--action-primary)] border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-bold mb-1">Processing...</p>
+                <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.2em]">Please wait</p>
+              </div>
+            </div>
+          </div>
+        )
+      }
     </div >
   );
 };

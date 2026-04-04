@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { X, CheckCircle2, Wallet, ArrowRightLeft, FileText, Calendar, Loader2 } from 'lucide-react';
+import { X, CheckCircle2, Wallet, ArrowRightLeft, FileText, Calendar } from 'lucide-react';
 import { Account } from '../../../types';
 import { DatePicker } from '../../ui/DatePicker';
 
@@ -10,10 +10,9 @@ interface Props {
     accounts: Account[];
     onSubmit: (data: { sourceAccountId: string; targetAccountId: string; amount: number; description: string; date: string }) => void;
     currencySymbol: string;
-    isSubmitting?: boolean;
 }
 
-export const TransferModal: React.FC<Props> = ({ isOpen, onClose, accounts, onSubmit, currencySymbol, isSubmitting }) => {
+export const TransferModal: React.FC<Props> = ({ isOpen, onClose, accounts, onSubmit, currencySymbol }) => {
     const [date, setDate] = useState(new Date().toISOString());
     const [error, setError] = useState<string | null>(null);
 
@@ -144,17 +143,10 @@ export const TransferModal: React.FC<Props> = ({ isOpen, onClose, accounts, onSu
 
                         <button
                             type="submit"
-                            disabled={isSubmitting}
-                            className="w-full group bg-gradient-to-r from-[var(--action-primary)] to-[#fbbf24] text-white py-5 rounded-2xl font-bold uppercase tracking-[0.15em] shadow-xl shadow-orange-500/20 hover:shadow-orange-500/40 hover:scale-[1.01] active:scale-[0.98] transition-all flex items-center justify-center gap-3 mt-4 disabled:opacity-70"
+                            className="w-full group bg-gradient-to-r from-[var(--action-primary)] to-[#fbbf24] text-white py-5 rounded-2xl font-bold uppercase tracking-[0.15em] shadow-xl shadow-orange-500/20 hover:shadow-orange-500/40 hover:scale-[1.01] active:scale-[0.98] transition-all flex items-center justify-center gap-3 mt-4"
                         >
-                            {isSubmitting ? (
-                                <Loader2 size={18} className="animate-spin" />
-                            ) : (
-                                <>
-                                    Transfer Funds
-                                    <CheckCircle2 size={18} className="group-hover:rotate-12 transition-transform" />
-                                </>
-                            )}
+                            Transfer Funds
+                            <CheckCircle2 size={18} className="group-hover:rotate-12 transition-transform" />
                         </button>
                     </form>
                 </div>

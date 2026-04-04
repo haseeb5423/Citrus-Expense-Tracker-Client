@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { X, ShieldCheck, Wallet, Landmark, CreditCard, Zap, Layers, Loader2 } from 'lucide-react';
+import { X, ShieldCheck, Wallet, Landmark, CreditCard, Zap, Layers } from 'lucide-react';
 import { Account, AccountType } from '../../../types';
 
 interface Props {
@@ -9,10 +9,9 @@ interface Props {
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   account?: Account | null;
   accountTypes: AccountType[];
-  isSubmitting?: boolean;
 }
 
-export const AddVaultModal: React.FC<Props> = ({ isOpen, onClose, onSubmit, account, accountTypes, isSubmitting }) => {
+export const AddVaultModal: React.FC<Props> = ({ isOpen, onClose, onSubmit, account, accountTypes }) => {
   if (!isOpen) return null;
 
   return (
@@ -84,17 +83,10 @@ export const AddVaultModal: React.FC<Props> = ({ isOpen, onClose, onSubmit, acco
 
             <button 
               type="submit" 
-              disabled={isSubmitting}
-              className="w-full group bg-gradient-to-r from-[var(--action-primary)] to-[#fbbf24] text-white py-5 rounded-2xl font-bold uppercase tracking-[0.15em] shadow-xl shadow-orange-500/20 hover:shadow-orange-500/40 hover:scale-[1.01] active:scale-[0.98] transition-all flex items-center justify-center gap-3 mt-4 disabled:opacity-70"
+              className="w-full group bg-gradient-to-r from-[var(--action-primary)] to-[#fbbf24] text-white py-5 rounded-2xl font-bold uppercase tracking-[0.15em] shadow-xl shadow-orange-500/20 hover:shadow-orange-500/40 hover:scale-[1.01] active:scale-[0.98] transition-all flex items-center justify-center gap-3 mt-4"
             >
-              {isSubmitting ? (
-                <Loader2 size={18} className="animate-spin" />
-              ) : (
-                <>
-                  {account ? 'Confirm Changes' : 'Add Account'}
-                  <ShieldCheck size={18} className="group-hover:rotate-12 transition-transform" />
-                </>
-              )}
+              {account ? 'Confirm Changes' : 'Add Account'}
+              <ShieldCheck size={18} className="group-hover:rotate-12 transition-transform" />
             </button>
           </form>
         </div>

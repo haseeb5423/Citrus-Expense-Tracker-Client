@@ -21,18 +21,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // Try to get current user from backend (cookies or interceptor will handle it)
+        // Try to get current user from backend (cookies will be sent automatically)
         const { data } = await api.get('/auth/me');
         setUser(data);
       } catch (error) {
-        // If /auth/me fails, check if we have a persisted session in localStorage
-        const persistedUser = localStorage.getItem('citrus_user');
-        if (persistedUser) {
-          setUser(JSON.parse(persistedUser));
-        } else {
-          console.log('Not authenticated');
-          setUser(null);
-        }
+        // If 401 or network error, user is not logged in
+        console.log('Not authenticated');
+        setUser(null);
       } finally {
         setLoading(false);
       }
@@ -40,12 +35,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     checkAuth();
   }, []);
 
-  const login = (userData: any) => {
+  const login = (userData: UserProfile) => {
     setUser(userData);
-    if (userData.token) {
-      localStorage.setItem('citrus_token', userData.token);
-    }
-    localStorage.setItem('citrus_user', JSON.stringify(userData));
     setShowAuth(false);
   };
 
@@ -55,8 +46,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error('Logout failed', error);
     } finally {
-      localStorage.removeItem('citrus_token');
-      localStorage.removeItem('citrus_user');
       setUser(null);
     }
   };
