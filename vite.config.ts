@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => {
         ...(isProduction ? {} : {
           proxy: {
             '/api': {
-              target: 'https://citrus-expense-tracker.vercel.app',
+              target: 'http://localhost:5000',
               changeOrigin: true
             }
           }

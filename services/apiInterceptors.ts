@@ -4,6 +4,12 @@ export const setupInterceptors = (api: AxiosInstance) => {
   // Request interceptor
   api.interceptors.request.use(
     (config) => {
+      // Add token to headers if it exists in localStorage
+      const token = localStorage.getItem('citrus_token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+
       // Log requests in development
       if (import.meta.env.DEV) {
         console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url}`);
