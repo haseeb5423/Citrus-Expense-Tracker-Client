@@ -72,6 +72,8 @@ const FinanceApp: React.FC = () => {
     document.body.className = isDarkMode ? 'theme-dark' : 'theme-light';
   }, [isDarkMode]);
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   if (loading) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-[var(--bg-primary)]">
@@ -82,7 +84,7 @@ const FinanceApp: React.FC = () => {
     );
   }
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
+
 
   const handleTransactionSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
