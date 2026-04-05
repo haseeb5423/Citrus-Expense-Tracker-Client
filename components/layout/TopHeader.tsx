@@ -4,6 +4,7 @@ import {
   Menu, Plus, ArrowLeft, Check, Clock, Sun, Moon, 
   User as UserIcon, LogOut, Settings, User 
 } from 'lucide-react';
+import { LoadingSpinner } from '../ui/LoadingSpinner';
 import { Notification, UserProfile } from '../../types';
 import { formatDate } from '../../utils/formatters';
 
@@ -18,6 +19,7 @@ interface Props {
   onLoginClick?: () => void;
   isDarkMode: boolean;
   toggleDarkMode: () => void;
+  isLoading?: boolean;
 }
 
 export const TopHeader: React.FC<Props> = React.memo(({
@@ -30,7 +32,8 @@ export const TopHeader: React.FC<Props> = React.memo(({
   onLogout,
   onLoginClick,
   isDarkMode,
-  toggleDarkMode
+  toggleDarkMode,
+  isLoading
 }) => {
   const isDashboard = activeTab === 'dashboard';
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -95,7 +98,13 @@ export const TopHeader: React.FC<Props> = React.memo(({
           <span className="hidden md:inline">Add New</span>
         </button>
 
-        <div className="w-px h-6 bg-[var(--border-default)] mx-1" />
+        {isLoading ? (
+          <div className="flex items-center justify-center w-8">
+            <LoadingSpinner size={18} />
+          </div>
+        ) : (
+          <div className="w-px h-6 bg-[var(--border-default)] mx-1" />
+        )}
 
         <div className="relative" ref={profileMenuRef}>
           <button

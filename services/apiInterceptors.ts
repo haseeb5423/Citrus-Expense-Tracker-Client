@@ -4,8 +4,14 @@ export const setupInterceptors = (api: AxiosInstance) => {
   // Request interceptor
   api.interceptors.request.use(
     (config) => {
+      // Add token to headers if it exists in localStorage
+      const token = localStorage.getItem('citrus_token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+
       // Log requests in development
-      if (import.meta.env.DEV) {
+      if (import.meta.env.DEV && config.url !== '/auth/me') {
         console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url}`);
       }
       return config;
@@ -28,13 +34,18 @@ export const setupInterceptors = (api: AxiosInstance) => {
     async (error: AxiosError) => {
       const originalRequest = error.config as any;
 
-      // Log errors
-      console.error('[API Error]', {
-        url: originalRequest?.url,
-        method: originalRequest?.method,
-        status: error.response?.status,
-        message: error.message
-      });
+      // Only log errors with actual server responses (not network/connection errors)
+      const isAuthCheck = originalRequest?.url === '/auth/me';
+      const isSilentStatus = [401, 500, 503].includes(error.response?.status);
+
+      if (error.response && !(isAuthCheck && isSilentStatus)) {
+        console.error('[API Error]', {
+          url: originalRequest?.url,
+          method: originalRequest?.method,
+          status: error.response?.status,
+          message: error.message
+        });
+      }
 
       // Handle specific error codes
       if (error.response) {
@@ -44,7 +55,7 @@ export const setupInterceptors = (api: AxiosInstance) => {
         switch (status) {
           case 401:
             // Unauthorized - token expired or invalid
-            if (!originalRequest._retry) {
+            if (!originalRequest._retry && originalRequest.url !== '/auth/me') {
               // Could implement token refresh here
               console.warn('Authentication failed. Please login again.');
             }
@@ -72,7 +83,7 @@ export const setupInterceptors = (api: AxiosInstance) => {
             if (!originalRequest._retry && originalRequest._retryCount < 2) {
               originalRequest._retryCount = (originalRequest._retryCount || 0) + 1;
               originalRequest._retry = true;
-              
+
               // Wait before retrying
               await new Promise(resolve => setTimeout(resolve, 1000 * originalRequest._retryCount));
               return api(originalRequest);

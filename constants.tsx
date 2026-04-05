@@ -27,7 +27,7 @@ export const INITIAL_ACCOUNTS: Account[] = [
   },
   {
     id: 'acc-2',
-    name: 'Salary Account',
+    name: 'Salary Vault',
     balance: 0,
     cardNumber: '**** **** **** 2002',
     cardHolder: 'CITRUS',
@@ -36,7 +36,7 @@ export const INITIAL_ACCOUNTS: Account[] = [
   },
   {
     id: 'acc-3',
-    name: 'Current Account',
+    name: 'Current Vault',
     balance: 0,
     cardNumber: '**** **** **** 3003',
     cardHolder: 'CITRUS',
@@ -45,7 +45,7 @@ export const INITIAL_ACCOUNTS: Account[] = [
   },
   {
     id: 'acc-4',
-    name: 'Savings Goal',
+    name: 'Savings Vault',
     balance: 0,
     cardNumber: '**** **** **** 4004',
     cardHolder: 'CITRUS',

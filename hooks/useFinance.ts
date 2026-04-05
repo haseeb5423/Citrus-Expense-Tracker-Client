@@ -22,7 +22,7 @@ export const useFinance = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [currency, setCurrency] = useState(() => localStorage.getItem('citrus_currency') || 'Rs.');
   const [isLoading, setIsLoading] = useState(true);
-  
+
   const prevUserRef = useRef<string | null>(null);
   const isSyncing = useRef(false);
 
@@ -37,7 +37,7 @@ export const useFinance = () => {
         if (user && prevUserRef.current === null && !isSyncing.current) {
           isSyncing.current = true;
           const guestDataStr = localStorage.getItem(GUEST_DATA_KEY);
-          
+
           if (guestDataStr) {
             try {
               const guestData = JSON.parse(guestDataStr);
@@ -47,7 +47,7 @@ export const useFinance = () => {
                 transactions: guestData.transactions || [],
                 accountTypes: guestData.accountTypes || []
               });
-              
+
               if (response.status === 200) {
                 localStorage.removeItem(GUEST_DATA_KEY);
                 // After sync, fetch fresh data
@@ -60,24 +60,25 @@ export const useFinance = () => {
             await fetchBackendData();
           }
           isSyncing.current = false;
-        } 
+        }
         // 2. Guest Mode
         else if (!user) {
           const guestData = localStorage.getItem(GUEST_DATA_KEY);
           if (guestData) {
             const loadedData = JSON.parse(guestData);
-            setAccounts(loadedData.accounts || INITIAL_ACCOUNTS);
+            setAccounts(loadedData.accounts?.length > 0 ? loadedData.accounts : INITIAL_ACCOUNTS);
             setTransactions(loadedData.transactions || []);
-            setAccountTypes(loadedData.accountTypes || DEFAULT_TYPES);
+            setAccountTypes(loadedData.accountTypes?.length > 0 ? loadedData.accountTypes : DEFAULT_TYPES);
           } else {
             setAccounts(INITIAL_ACCOUNTS);
+            setAccountTypes(DEFAULT_TYPES);
           }
-        } 
+        }
         // 3. User Already Logged In
         else if (user) {
           await fetchBackendData();
         }
-  
+
         setNotifications([{
           id: 'welcome',
           title: user ? `Welcome, ${user.name}` : 'Welcome, Guest',
@@ -86,7 +87,7 @@ export const useFinance = () => {
           isRead: false,
           type: 'success'
         }]);
-    
+
         prevUserRef.current = user?.id || null;
       } catch (error) {
         console.error("Data loading failed", error);
@@ -101,7 +102,7 @@ export const useFinance = () => {
   const fetchBackendData = async () => {
     try {
       const { data } = await api.get('/finance/data');
-      
+
       // Normalize MongoDB accounts to have both _id and id
       const normalizedAccounts = data.accounts.map((acc: any) => ({
         ...acc,
@@ -120,14 +121,14 @@ export const useFinance = () => {
       // But ideally backend data is source of truth.
       // If backend returns accountTypes, use them.
       // The backend response structure for Types needs to be mapped to frontend structure (id, label, theme)
-      
+
       let fetchedTypes: AccountType[] = [];
       if (data.accountTypes && Array.isArray(data.accountTypes)) {
-         fetchedTypes = data.accountTypes.map((t: any) => ({
-           id: t._id,
-           label: t.label,
-           theme: t.theme
-         }));
+        fetchedTypes = data.accountTypes.map((t: any) => ({
+          id: t._id,
+          label: t.label,
+          theme: t.theme
+        }));
       }
 
       // Merge defaults with fetched. Ensure no duplicates by label.
@@ -135,31 +136,31 @@ export const useFinance = () => {
       // The requirement is "custom types". Defaults are hardcoded.
       // Let's keep DEFAULT_TYPES always present and append custom fetched ones.
       // Filter out any fetched types that are already in DEFAULT_TYPES (by label)
-      
+
       // Account Types Logic:
       // 1. Get types from backend
       // 2. If backend has types, use them.
       // 3. Always ensure DEFAULT_TYPES are available (merged), but prioritize backend IDs if they match.
-      
+
       let finalTypes: AccountType[] = [...DEFAULT_TYPES];
 
       // console.log("Account Types from Backend:", data.accountTypes); 
 
       if (data.accountTypes && Array.isArray(data.accountTypes)) {
-         const backendTypes = data.accountTypes.map((t: any) => ({
-           id: t._id || t.id,
-           label: t.label,
-           theme: t.theme
-         }));
-         
-         // Backend is the source of truth.
-         // Do NOT merge defaults. If user deleted them, they should be gone.
-         finalTypes = backendTypes;
+        const backendTypes = data.accountTypes.map((t: any) => ({
+          id: t._id || t.id,
+          label: t.label,
+          theme: t.theme
+        }));
+
+        // Backend is the source of truth.
+        // Do NOT merge defaults. If user deleted them, they should be gone.
+        finalTypes = backendTypes;
       }
-      
+
       // Sort: Defaults first (by ID or known labels), then others.
       // Actually just alphabetical or creation order is fine.
-      
+
       setAccounts(normalizedAccounts);
       setTransactions(normalizedTransactions);
       setAccountTypes(finalTypes);
@@ -213,7 +214,7 @@ export const useFinance = () => {
 
   const deleteAccountType = useCallback(async (id: string) => {
     try {
-      if (DEFAULT_TYPES.some(t => t.id === id)) return; 
+      if (DEFAULT_TYPES.some(t => t.id === id)) return;
 
       setAccountTypes(prev => prev.filter(t => t.id !== id));
 
@@ -230,12 +231,12 @@ export const useFinance = () => {
     try {
       // Optimistic Update
       const targetAcc = accounts.find(a => a.id === data.accountId);
-      
+
       const currentBalance = Number(targetAcc?.balance || 0);
       const txAmount = Number(data.amount);
-      
-      const balanceAt = Number(data.type === 'income' 
-        ? currentBalance + txAmount 
+
+      const balanceAt = Number(data.type === 'income'
+        ? currentBalance + txAmount
         : currentBalance - txAmount);
 
       const optimisticTx: Transaction = {
@@ -249,7 +250,7 @@ export const useFinance = () => {
       // Update state immediately
       setTransactions(prev => [optimisticTx, ...prev]);
       if (targetAcc) {
-        setAccounts(prev => prev.map(acc => 
+        setAccounts(prev => prev.map(acc =>
           acc.id === data.accountId ? { ...acc, balance: balanceAt } : acc
         ));
       }
@@ -259,7 +260,7 @@ export const useFinance = () => {
           ...data,
           date: data.date || new Date().toISOString()
         });
-        
+
         // Replace temp ID with real ID from backend
         setTransactions(prev => prev.map(tx => tx.id === optimisticTx.id ? { ...response.data, id: response.data._id || response.data.id } : tx));
       }
@@ -284,11 +285,11 @@ export const useFinance = () => {
             if (acc.id === oldTx.accountId) {
               const currentBal = Number(acc.balance);
               const oldAmt = Number(oldTx.amount);
-              return { 
-                ...acc, 
-                balance: oldTx.type === 'income' 
-                  ? Number(currentBal - oldAmt) 
-                  : Number(currentBal + oldAmt) 
+              return {
+                ...acc,
+                balance: oldTx.type === 'income'
+                  ? Number(currentBal - oldAmt)
+                  : Number(currentBal + oldAmt)
               };
             }
             return acc;
@@ -298,11 +299,11 @@ export const useFinance = () => {
           updated = updated.map(acc => {
             if (acc.id === data.accountId) {
               const currentBal = Number(acc.balance);
-              return { 
-                ...acc, 
-                balance: data.type === 'income' 
-                  ? Number(currentBal + newAmt) 
-                  : Number(currentBal - newAmt) 
+              return {
+                ...acc,
+                balance: data.type === 'income'
+                  ? Number(currentBal + newAmt)
+                  : Number(currentBal - newAmt)
               };
             }
             return acc;
@@ -331,7 +332,7 @@ export const useFinance = () => {
         cardHolder: user?.name ? user.name.toUpperCase() : 'GUEST USER',
         color: '',
       };
-      
+
       setAccounts(prev => [...prev, optimisticAccount]);
 
       if (user) {
@@ -361,7 +362,7 @@ export const useFinance = () => {
     try {
       setAccounts(prev => prev.filter(acc => acc.id !== id));
       setTransactions(prev => prev.filter(t => t.accountId !== id));
-      
+
       if (user) {
         await api.delete(`/finance/accounts/${id}`);
       }
@@ -383,14 +384,14 @@ export const useFinance = () => {
             const amt = Number(transaction.amount);
             return {
               ...acc,
-              balance: transaction.type === 'income' 
-                ? Number(currentBal - amt) 
+              balance: transaction.type === 'income'
+                ? Number(currentBal - amt)
                 : Number(currentBal + amt)
             };
           }
           return acc;
         }));
-        
+
         return prev.filter(t => t.id !== id);
       });
 
@@ -407,7 +408,7 @@ export const useFinance = () => {
     try {
       setTransactions(prev => {
         const transactionsToDelete = prev.filter(t => ids.includes(t.id));
-        
+
         setAccounts(accounts => {
           let updated = [...accounts];
           transactionsToDelete.forEach(transaction => {
@@ -417,8 +418,8 @@ export const useFinance = () => {
                 const amt = Number(transaction.amount);
                 return {
                   ...acc,
-                  balance: transaction.type === 'income' 
-                    ? Number(currentBal - amt) 
+                  balance: transaction.type === 'income'
+                    ? Number(currentBal - amt)
                     : Number(currentBal + amt)
                 };
               }
@@ -452,8 +453,8 @@ export const useFinance = () => {
                 const amt = Number(transaction.amount);
                 return {
                   ...acc,
-                  balance: transaction.type === 'income' 
-                    ? Number(currentBal - amt) 
+                  balance: transaction.type === 'income'
+                    ? Number(currentBal - amt)
                     : Number(currentBal + amt)
                 };
               }
@@ -477,12 +478,12 @@ export const useFinance = () => {
   const transferFunds = useCallback(async (data: { sourceAccountId: string, targetAccountId: string, amount: number, date: string, description?: string }) => {
     try {
       const { sourceAccountId, targetAccountId, amount, date, description } = data;
-      
+
       const sourceAcc = accounts.find(a => a.id === sourceAccountId);
       const targetAcc = accounts.find(a => a.id === targetAccountId);
-      
+
       if (!sourceAcc || !targetAcc) throw new Error('Account not found');
-      
+
       const sourceBal = Number(sourceAcc.balance);
       const targetBal = Number(targetAcc.balance);
       const transferAmt = Number(amount);
@@ -513,7 +514,7 @@ export const useFinance = () => {
       };
 
       setTransactions(prev => [expenseTx, incomeTx, ...prev]);
-      
+
       setAccounts(prev => prev.map(acc => {
         if (acc.id === sourceAccountId) return { ...acc, balance: newSourceBalance };
         if (acc.id === targetAccountId) return { ...acc, balance: newTargetBalance };

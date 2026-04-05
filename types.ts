@@ -12,7 +12,7 @@ export interface Transaction {
   id: string;
   amount: number;
   type: TransactionType;
-  category: string; 
+  category: string;
   description: string;
   date: string;
   accountId: string;
@@ -42,6 +42,7 @@ export interface UserProfile {
   name: string;
   avatar: string;
   joinedAt: string;
+  token?: string; // JWT token for header fallback
 }
 
 export interface Notification {

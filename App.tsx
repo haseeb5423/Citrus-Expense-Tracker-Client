@@ -72,15 +72,6 @@ const FinanceApp: React.FC = () => {
     document.body.className = isDarkMode ? 'theme-dark' : 'theme-light';
   }, [isDarkMode]);
 
-  if (loading) {
-    return (
-      <div className="h-screen w-full flex items-center justify-center bg-[var(--bg-primary)]">
-        <div className="animate-pulse">
-           <span className="text-xl font-black italic tracking-tighter text-[var(--action-primary)]">CITRUS</span>
-        </div>
-      </div>
-    );
-  }
 
   const handleTransactionSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -158,6 +149,7 @@ const FinanceApp: React.FC = () => {
           onLoginClick={() => setShowAuth(true)}
           isDarkMode={isDarkMode}
           toggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+          isLoading={isLoading}
         />
 
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 custom-scrollbar">
@@ -379,25 +371,6 @@ const FinanceApp: React.FC = () => {
         )
       }
 
-      {/* Loading Overlay */}
-      {
-        isLoading && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[200]">
-            <div className="glass rounded-3xl border border-white/10 p-8 flex flex-col items-center gap-4 animate-scale-in">
-              <div className="relative w-16 h-16">
-                <div className="absolute inset-0 rounded-2xl bg-[var(--action-primary)] animate-pulse"></div>
-                <div className="absolute inset-2 rounded-xl bg-[var(--bg-primary)] flex items-center justify-center">
-                  <div className="w-8 h-8 border-4 border-[var(--action-primary)] border-t-transparent rounded-full animate-spin"></div>
-                </div>
-              </div>
-              <div className="text-center">
-                <p className="text-sm font-bold mb-1">Processing...</p>
-                <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.2em]">Please wait</p>
-              </div>
-            </div>
-          </div>
-        )
-      }
     </div >
   );
 };

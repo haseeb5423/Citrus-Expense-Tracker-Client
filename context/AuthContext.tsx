@@ -21,12 +21,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // Try to get current user from backend (cookies will be sent automatically)
-        const { data } = await api.get('/auth/me');
+        // Use a short timeout for auth check - if backend is down, fail fast
+        const { data } = await api.get('/auth/me', { timeout: 3000 });
         setUser(data);
-      } catch (error) {
-        // If 401 or network error, user is not logged in
-        console.log('Not authenticated');
+      } catch (error: any) {
+        // Silently handle network errors and proxy errors (500/503) when backend is offline
+        const isOffline = !error?.response || error?.status === 500 || error?.status === 503;
+        const isAuthError = error?.status === 401;
+
+        if (!isOffline && !isAuthError) {
+          console.log('Auth check failed:', error?.message || 'Unknown error');
+        }
         setUser(null);
       } finally {
         setLoading(false);
@@ -36,6 +41,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = (userData: UserProfile) => {
+    // If token is provided in the body, store it as a fallback for cross-site cookie issues
+    if (userData.token) {
+      localStorage.setItem('citrus_token', userData.token);
+    }
     setUser(userData);
     setShowAuth(false);
   };
@@ -46,6 +55,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error('Logout failed', error);
     } finally {
+      localStorage.removeItem('citrus_token');
       setUser(null);
     }
   };
