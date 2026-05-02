@@ -12,9 +12,10 @@ interface Props {
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   transaction?: Transaction | null;
   currencySymbol: string;
+  isLoading?: boolean;
 }
 
-export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, accounts, onSubmit, transaction, currencySymbol }) => {
+export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, accounts, onSubmit, transaction, currencySymbol, isLoading }) => {
   const [date, setDate] = useState(transaction?.date || new Date().toISOString());
 
   useEffect(() => {
@@ -124,10 +125,20 @@ export const TransactionModal: React.FC<Props> = ({ isOpen, onClose, accounts, o
 
             <button
               type="submit"
-              className="w-full group bg-gradient-to-r from-[var(--action-primary)] to-[#fbbf24] text-white py-5 rounded-2xl font-bold uppercase tracking-[0.15em] shadow-xl shadow-orange-500/20 hover:shadow-orange-500/40 hover:scale-[1.01] active:scale-[0.98] transition-all flex items-center justify-center gap-3 mt-4"
+              disabled={isLoading}
+              className={`w-full group bg-gradient-to-r from-[var(--action-primary)] to-[#fbbf24] text-white py-5 rounded-2xl font-bold uppercase tracking-[0.15em] shadow-xl shadow-orange-500/20 hover:shadow-orange-500/40 hover:scale-[1.01] active:scale-[0.98] transition-all flex items-center justify-center gap-3 mt-4 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
-              {transaction ? 'Update Record' : 'Save Transaction'}
-              <CheckCircle2 size={18} className="group-hover:rotate-12 transition-transform" />
+              {isLoading ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  <span>Processing...</span>
+                </>
+              ) : (
+                <>
+                  {transaction ? 'Update Record' : 'Save Transaction'}
+                  <CheckCircle2 size={18} className="group-hover:rotate-12 transition-transform" />
+                </>
+              )}
             </button>
           </form>
         </div>

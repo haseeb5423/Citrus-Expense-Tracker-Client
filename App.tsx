@@ -26,6 +26,11 @@ const MainChart = lazy(() => import('./components/features/dashboard/MainChart')
 const AuthView = lazy(() => import('./components/features/auth/AuthView').then(module => ({ default: module.AuthView })));
 const ProfileView = lazy(() => import('./components/features/profile/ProfileView').then(module => ({ default: module.ProfileView })));
 
+import { GlobalLoading } from './components/ui/GlobalLoading';
+import { LoadingSpinner } from './components/ui/LoadingSpinner';
+import { OfflineBanner } from './components/ui/OfflineBanner';
+import { InstallPrompt } from './components/ui/InstallPrompt';
+
 const FinanceApp: React.FC = () => {
   const { user, loading, logout, showAuth, setShowAuth } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -52,6 +57,7 @@ const FinanceApp: React.FC = () => {
     setCurrency,
     stats,
     isLoading,
+    isActionLoading,
     addTransaction,
     updateTransaction,
     deleteTransaction,
@@ -73,7 +79,7 @@ const FinanceApp: React.FC = () => {
   }, [isDarkMode]);
 
 
-  const handleTransactionSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleTransactionSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const type = formData.get('type') as 'income' | 'expense';
@@ -87,15 +93,15 @@ const FinanceApp: React.FC = () => {
     if (isNaN(amount) || amount <= 0) return;
 
     if (editingTransaction) {
-      updateTransaction(editingTransaction.id, { type, amount, accountId, category, description, date });
+      await updateTransaction(editingTransaction.id, { type, amount, accountId, category, description, date });
       setEditingTransaction(null);
     } else {
-      addTransaction({ type, amount, accountId, category, description, date });
+      await addTransaction({ type, amount, accountId, category, description, date });
       setShowAddTransaction(false);
     }
   };
 
-  const handleVaultSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleVaultSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const name = formData.get('name') as string;
@@ -104,10 +110,10 @@ const FinanceApp: React.FC = () => {
     if (!name) return;
 
     if (editingAccount) {
-      updateAccount(editingAccount.id, { name, type });
+      await updateAccount(editingAccount.id, { name, type });
       setEditingAccount(null);
     } else {
-      addAccount({ name, type, balance: 0 });
+      await addAccount({ name, type, balance: 0 });
       setShowAddVault(false);
     }
   };
@@ -124,10 +130,15 @@ const FinanceApp: React.FC = () => {
   const appFormatCurrency = (val: number) => formatCurrency(val, currency);
 
   return (
-    <div className="flex h-screen w-full bg-transparent overflow-hidden">
-      <Sidebar
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
+    <div className="relative h-screen w-full bg-transparent overflow-hidden">
+      {isLoading && <GlobalLoading fullScreen={true} />}
+      <InstallPrompt />
+      <OfflineBanner />
+      
+      <div className="flex h-full w-full">
+        <Sidebar
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
         isCollapsed={isSidebarCollapsed}
         setIsCollapsed={setIsSidebarCollapsed}
         isOpen={isMobileMenuOpen}
@@ -155,15 +166,7 @@ const FinanceApp: React.FC = () => {
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 custom-scrollbar">
           {activeTab === 'dashboard' && (
             <div className="max-w-7xl mx-auto space-y-8 fade-in">
-              {isLoading ? (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <KpiCardSkeleton />
-                  <KpiCardSkeleton />
-                  <KpiCardSkeleton />
-                </div>
-              ) : (
-                <KpiCards stats={stats} currencySymbol={currency} />
-              )}
+              <KpiCards stats={stats} currencySymbol={currency} />
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <Suspense fallback={<ChartSkeleton />}>
@@ -212,11 +215,9 @@ const FinanceApp: React.FC = () => {
 
           {activeTab === 'accounts' && (
             <Suspense fallback={
-              <div className="flex items-center justify-center h-96">
-                <div className="text-center">
-                  <ChevronRightIcon className="animate-spin text-[var(--action-primary)] mx-auto mb-2" size={32} />
-                  <p className="text-sm text-[var(--text-muted)] font-semibold">Loading Accounts...</p>
-                </div>
+              <div className="flex flex-col items-center justify-center h-96 gap-4">
+                <LoadingSpinner size={48} />
+                <p className="text-sm text-[var(--text-muted)] font-semibold">Loading Accounts...</p>
               </div>
             }>
               <VaultsView
@@ -235,11 +236,9 @@ const FinanceApp: React.FC = () => {
 
           {activeTab === 'transactions' && (
             <Suspense fallback={
-              <div className="flex items-center justify-center h-96">
-                <div className="text-center">
-                  <ChevronRightIcon className="animate-spin text-[var(--action-primary)] mx-auto mb-2" size={32} />
-                  <p className="text-sm text-[var(--text-muted)] font-semibold">Loading Transactions...</p>
-                </div>
+              <div className="flex flex-col items-center justify-center h-96 gap-4">
+                <LoadingSpinner size={48} />
+                <p className="text-sm text-[var(--text-muted)] font-semibold">Loading Transactions...</p>
               </div>
             }>
               <HistoryView
@@ -256,11 +255,9 @@ const FinanceApp: React.FC = () => {
 
           {activeTab === 'reports' && (
             <Suspense fallback={
-              <div className="flex items-center justify-center h-96">
-                <div className="text-center">
-                  <ChevronRightIcon className="animate-spin text-[var(--action-primary)] mx-auto mb-2" size={32} />
-                  <p className="text-sm text-[var(--text-muted)] font-semibold">Loading Analytics...</p>
-                </div>
+              <div className="flex flex-col items-center justify-center h-96 gap-4">
+                <LoadingSpinner size={48} />
+                <p className="text-sm text-[var(--text-muted)] font-semibold">Loading Analytics...</p>
               </div>
             }>
               <AnalyticsView
@@ -273,11 +270,9 @@ const FinanceApp: React.FC = () => {
 
           {activeTab === 'settings' && (
             <Suspense fallback={
-              <div className="flex items-center justify-center h-96">
-                <div className="text-center">
-                  <ChevronRightIcon className="animate-spin text-[var(--action-primary)] mx-auto mb-2" size={32} />
-                  <p className="text-sm text-[var(--text-muted)] font-semibold">Loading Settings...</p>
-                </div>
+              <div className="flex flex-col items-center justify-center h-96 gap-4">
+                <LoadingSpinner size={48} />
+                <p className="text-sm text-[var(--text-muted)] font-semibold">Loading Settings...</p>
               </div>
             }>
               <SettingsView
@@ -295,11 +290,9 @@ const FinanceApp: React.FC = () => {
 
           {activeTab === 'profile' && (
             <Suspense fallback={
-              <div className="flex items-center justify-center h-96">
-                <div className="text-center">
-                  <ChevronRightIcon className="animate-spin text-[var(--action-primary)] mx-auto mb-2" size={32} />
-                  <p className="text-sm text-[var(--text-muted)] font-semibold">Loading Profile...</p>
-                </div>
+              <div className="flex flex-col items-center justify-center h-96 gap-4">
+                <LoadingSpinner size={48} />
+                <p className="text-sm text-[var(--text-muted)] font-semibold">Loading Profile...</p>
               </div>
             }>
               <ProfileView
@@ -324,6 +317,7 @@ const FinanceApp: React.FC = () => {
           onSubmit={handleTransactionSubmit}
           transaction={editingTransaction}
           currencySymbol={currency}
+          isLoading={isActionLoading}
         />
 
         <AddVaultModal
@@ -335,6 +329,7 @@ const FinanceApp: React.FC = () => {
           onSubmit={handleVaultSubmit}
           account={editingAccount}
           accountTypes={accountTypes}
+          isLoading={isActionLoading}
         />
 
         <TransferModal
@@ -343,6 +338,7 @@ const FinanceApp: React.FC = () => {
           accounts={accounts}
           onSubmit={handleTransferSubmit}
           currencySymbol={currency}
+          isLoading={isActionLoading}
         />
 
         <LogoutConfirmationModal
@@ -360,8 +356,8 @@ const FinanceApp: React.FC = () => {
         showAuth && (
           <div className="fixed inset-0 z-[100] animate-in fade-in duration-300 bg-[var(--bg-primary)]/40 backdrop-blur-md flex items-center justify-center p-6">
             <Suspense fallback={
-              <div className="glass p-10 rounded-[3rem] border border-white/10 flex flex-col items-center gap-4">
-                <div className="w-12 h-12 border-4 border-[var(--action-primary)] border-t-transparent rounded-full animate-spin"></div>
+              <div className="glass p-10 rounded-[3rem] border border-white/10 flex flex-col items-center gap-6">
+                <LoadingSpinner size={48} />
                 <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Loading Secure Vault...</p>
               </div>
             }>
@@ -370,7 +366,7 @@ const FinanceApp: React.FC = () => {
           </div>
         )
       }
-
+      </div>
     </div >
   );
 };

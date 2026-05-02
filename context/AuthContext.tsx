@@ -20,17 +20,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const checkAuth = async () => {
+      const token = localStorage.getItem('citrus_token');
+
+      // If no token exists locally, skip the request to avoid unnecessary 401 console errors
+      // Note: This assumes token is required for cross-site persistence
+      if (!token) {
+        setLoading(false);
+        setUser(null);
+        return;
+      }
+
       try {
         // Use a short timeout for auth check - if backend is down, fail fast
-        const { data } = await api.get('/auth/me', { timeout: 3000 });
+        const { data } = await api.get('/auth/me', { timeout: 5000 });
         setUser(data);
       } catch (error: any) {
-        // Silently handle network errors and proxy errors (500/503) when backend is offline
+        // Silently handle network errors and auth failures
         const isOffline = !error?.response || error?.status === 500 || error?.status === 503;
         const isAuthError = error?.status === 401;
 
         if (!isOffline && !isAuthError) {
           console.log('Auth check failed:', error?.message || 'Unknown error');
+        }
+
+        // If 401, clear the invalid token
+        if (isAuthError) {
+          localStorage.removeItem('citrus_token');
         }
         setUser(null);
       } finally {

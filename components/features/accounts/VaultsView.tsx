@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Account, Transaction } from '../../../types';
 import { AccountCard } from './AccountCard';
 import { RecentHistory } from '../dashboard/RecentHistory';
+import { ConfirmationModal } from '../modals/ConfirmationModal';
 import { Plus, Info, TrendingUp, TrendingDown, Target, ShieldCheck, ArrowRightLeft } from 'lucide-react';
 
 interface Props {
@@ -20,14 +21,24 @@ interface Props {
 export const VaultsView: React.FC<Props> = ({ accounts, transactions, formatCurrency, onAddVault, onEditVault, onDeleteVault, onTransfer, currencySymbol, onSeeAll }) => {
   const [selectedAccountId, setSelectedAccountId] = useState(accounts[0]?.id);
   const [deletingVaultId, setDeletingVaultId] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [vaultToDelete, setVaultToDelete] = useState<string | null>(null);
 
   const selectedAccount = accounts.find(a => (a._id || a.id) === selectedAccountId) || accounts[0];
   const vaultTransactions = transactions.filter(t => t.accountId === (selectedAccount?._id || selectedAccount?.id));
 
-  const handleDelete = async (id: string) => {
-    setDeletingVaultId(id);
-    await onDeleteVault(id);
+  const handleDeleteClick = (id: string) => {
+    setVaultToDelete(id);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!vaultToDelete) return;
+    setDeletingVaultId(vaultToDelete);
+    setShowDeleteConfirm(false);
+    await onDeleteVault(vaultToDelete);
     setDeletingVaultId(null);
+    setVaultToDelete(null);
   };
 
   const vaultStats = React.useMemo(() => {
@@ -81,7 +92,7 @@ export const VaultsView: React.FC<Props> = ({ accounts, transactions, formatCurr
                   isSelected={selectedAccountId === (acc._id || acc.id)}
                   onClick={() => setSelectedAccountId(acc._id || acc.id)}
                   onEdit={(e) => { e.stopPropagation(); onEditVault(acc); }}
-                  onDelete={deletingVaultId ? undefined : (e) => { e.stopPropagation(); handleDelete(acc._id || acc.id); }}
+                  onDelete={deletingVaultId ? undefined : (e) => { e.stopPropagation(); handleDeleteClick(acc._id || acc.id); }}
                   formatCurrency={formatCurrency}
                   isLoading={deletingVaultId === (acc._id || acc.id)}
                 />
@@ -167,6 +178,18 @@ export const VaultsView: React.FC<Props> = ({ accounts, transactions, formatCurr
           )}
         </div>
       </div>
+
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false);
+          setVaultToDelete(null);
+        }}
+        onConfirm={confirmDelete}
+        title="Delete Vault?"
+        message="This action is irreversible. All transaction history linked to this account will be permanently removed from the Citrus vault."
+        confirmText="Yes, Delete Vault"
+      />
     </div>
   );
 };

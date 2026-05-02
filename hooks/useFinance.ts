@@ -4,6 +4,7 @@ import { Account, Transaction, Notification, AccountType } from '../types';
 import { INITIAL_ACCOUNTS } from '../constants';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
+import { syncService } from '../services/syncService';
 
 const GUEST_DATA_KEY = 'citrus_guest_data';
 
@@ -22,6 +23,7 @@ export const useFinance = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [currency, setCurrency] = useState(() => localStorage.getItem('citrus_currency') || 'Rs.');
   const [isLoading, setIsLoading] = useState(true);
+  const [isActionLoading, setIsActionLoading] = useState(false);
 
   const prevUserRef = useRef<string | null>(null);
   const isSyncing = useRef(false);
@@ -203,12 +205,24 @@ export const useFinance = () => {
       setAccountTypes(prev => [...prev, optimisticType]);
 
       if (user) {
-        const { data } = await api.post('/finance/account-types', { label, theme });
-        setAccountTypes(prev => prev.map(t => t.id === optimisticType.id ? { id: data._id, label: data.label, theme: data.theme } : t));
+        if (!navigator.onLine) {
+          syncService.enqueue('POST', '/finance/account-types', { label, theme });
+        } else {
+          try {
+            const { data } = await api.post('/finance/account-types', { label, theme });
+            setAccountTypes(prev => prev.map(t => t.id === optimisticType.id ? { id: data._id, label: data.label, theme: data.theme } : t));
+          } catch (error: any) {
+            if (error.status === 0) {
+              syncService.enqueue('POST', '/finance/account-types', { label, theme });
+            } else {
+              throw error;
+            }
+          }
+        }
       }
     } catch (error) {
       console.error("Failed to add account type", error);
-      await fetchBackendData();
+      if (navigator.onLine) await fetchBackendData();
     }
   }, [user]);
 
@@ -219,13 +233,27 @@ export const useFinance = () => {
       setAccountTypes(prev => prev.filter(t => t.id !== id));
 
       if (user) {
-        await api.delete(`/finance/account-types/${id}`);
+        if (!navigator.onLine) {
+          syncService.enqueue('DELETE', `/finance/account-types/${id}`);
+        } else {
+          try {
+            await api.delete(`/finance/account-types/${id}`);
+          } catch (error: any) {
+            if (error.status === 0) {
+              syncService.enqueue('DELETE', `/finance/account-types/${id}`);
+            } else {
+              throw error;
+            }
+          }
+        }
       }
     } catch (error) {
       console.error("Failed to delete account type", error);
-      await fetchBackendData();
+      if (navigator.onLine) await fetchBackendData();
     }
   }, [user]);
+
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
   const addTransaction = useCallback(async (data: any) => {
     try {
@@ -256,18 +284,35 @@ export const useFinance = () => {
       }
 
       if (user) {
-        const response = await api.post('/finance/transactions', {
+        const txData = {
           ...data,
           date: data.date || new Date().toISOString()
-        });
+        };
 
-        // Replace temp ID with real ID from backend
-        setTransactions(prev => prev.map(tx => tx.id === optimisticTx.id ? { ...response.data, id: response.data._id || response.data.id } : tx));
+        if (!navigator.onLine) {
+          syncService.enqueue('POST', '/finance/transactions', txData);
+        } else {
+          try {
+            setIsActionLoading(true);
+            const [response] = await Promise.all([
+              api.post('/finance/transactions', txData),
+              delay(600)
+            ]);
+            setTransactions(prev => prev.map(tx => tx.id === optimisticTx.id ? { ...response.data, id: response.data._id || response.data.id } : tx));
+          } catch (error: any) {
+            if (error.status === 0) {
+              syncService.enqueue('POST', '/finance/transactions', txData);
+            } else {
+              throw error;
+            }
+          } finally {
+            setIsActionLoading(false);
+          }
+        }
       }
     } catch (error: any) {
       console.error('Add transaction failed:', error.message);
-      // Optional: Rollback on error
-      await fetchBackendData();
+      if (navigator.onLine) await fetchBackendData();
     }
   }, [user, accounts]);
 
@@ -315,11 +360,29 @@ export const useFinance = () => {
       });
 
       if (user) {
-        await api.put(`/finance/transactions/${id}`, data);
+        if (!navigator.onLine) {
+          syncService.enqueue('PUT', `/finance/transactions/${id}`, data);
+        } else {
+          try {
+            setIsActionLoading(true);
+            await Promise.all([
+              api.put(`/finance/transactions/${id}`, data),
+              delay(600)
+            ]);
+          } catch (error: any) {
+            if (error.status === 0) {
+              syncService.enqueue('PUT', `/finance/transactions/${id}`, data);
+            } else {
+              throw error;
+            }
+          } finally {
+            setIsActionLoading(false);
+          }
+        }
       }
     } catch (error: any) {
       console.error('Update transaction failed:', error.message);
-      await fetchBackendData();
+      if (navigator.onLine) await fetchBackendData();
     }
   }, [user]);
 
@@ -336,13 +399,30 @@ export const useFinance = () => {
       setAccounts(prev => [...prev, optimisticAccount]);
 
       if (user) {
-        const { data: savedAccount } = await api.post('/finance/accounts', data);
-        // Replace temp ID
-        setAccounts(prev => prev.map(acc => acc.id === optimisticAccount.id ? { ...savedAccount, id: savedAccount._id || savedAccount.id } : acc));
+        if (!navigator.onLine) {
+          syncService.enqueue('POST', '/finance/accounts', data);
+        } else {
+          try {
+            setIsActionLoading(true);
+            const [{ data: savedAccount }] = await Promise.all([
+              api.post('/finance/accounts', data),
+              delay(600)
+            ]);
+            setAccounts(prev => prev.map(acc => acc.id === optimisticAccount.id ? { ...savedAccount, id: savedAccount._id || savedAccount.id } : acc));
+          } catch (error: any) {
+            if (error.status === 0) {
+              syncService.enqueue('POST', '/finance/accounts', data);
+            } else {
+              throw error;
+            }
+          } finally {
+            setIsActionLoading(false);
+          }
+        }
       }
     } catch (error: any) {
       console.error('Add account failed:', error.message);
-      await fetchBackendData();
+      if (navigator.onLine) await fetchBackendData();
     }
   }, [user]);
 
@@ -350,11 +430,27 @@ export const useFinance = () => {
     try {
       setAccounts(prev => prev.map(acc => acc.id === id ? { ...acc, ...data } : acc));
       if (user) {
-        await api.put(`/finance/accounts/${id}`, data);
+        if (!navigator.onLine) {
+          syncService.enqueue('PUT', `/finance/accounts/${id}`, data);
+        } else {
+          try {
+            setIsActionLoading(true);
+            await Promise.all([
+              api.put(`/finance/accounts/${id}`, data),
+              delay(600)
+            ]);
+          } catch (error: any) {
+            if (error.status === 0) {
+              syncService.enqueue('PUT', `/finance/accounts/${id}`, data);
+            } else {
+              throw error;
+            }
+          }
+        }
       }
     } catch (error: any) {
       console.error('Update account failed:', error.message);
-      await fetchBackendData();
+      if (navigator.onLine) await fetchBackendData();
     }
   }, [user]);
 
@@ -364,11 +460,23 @@ export const useFinance = () => {
       setTransactions(prev => prev.filter(t => t.accountId !== id));
 
       if (user) {
-        await api.delete(`/finance/accounts/${id}`);
+        if (!navigator.onLine) {
+          syncService.enqueue('DELETE', `/finance/accounts/${id}`);
+        } else {
+          try {
+            await api.delete(`/finance/accounts/${id}`);
+          } catch (error: any) {
+            if (error.status === 0) {
+              syncService.enqueue('DELETE', `/finance/accounts/${id}`);
+            } else {
+              throw error;
+            }
+          }
+        }
       }
     } catch (error: any) {
       console.error('Delete account failed:', error.message);
-      await fetchBackendData();
+      if (navigator.onLine) await fetchBackendData();
     }
   }, [user]);
 
@@ -396,11 +504,23 @@ export const useFinance = () => {
       });
 
       if (user) {
-        await api.delete(`/finance/transactions/${id}`);
+        if (!navigator.onLine) {
+          syncService.enqueue('DELETE', `/finance/transactions/${id}`);
+        } else {
+          try {
+            await api.delete(`/finance/transactions/${id}`);
+          } catch (error: any) {
+            if (error.status === 0) {
+              syncService.enqueue('DELETE', `/finance/transactions/${id}`);
+            } else {
+              throw error;
+            }
+          }
+        }
       }
     } catch (error: any) {
       console.error('Delete transaction failed:', error.message);
-      await fetchBackendData();
+      if (navigator.onLine) await fetchBackendData();
     }
   }, [user]);
 
@@ -433,11 +553,23 @@ export const useFinance = () => {
       });
 
       if (user) {
-        await api.delete('/finance/transactions/bulk-delete', { data: { ids } });
+        if (!navigator.onLine) {
+          syncService.enqueue('DELETE', '/finance/transactions/bulk-delete', { ids });
+        } else {
+          try {
+            await api.delete('/finance/transactions/bulk-delete', { data: { ids } });
+          } catch (error: any) {
+            if (error.status === 0) {
+              syncService.enqueue('DELETE', '/finance/transactions/bulk-delete', { ids });
+            } else {
+              throw error;
+            }
+          }
+        }
       }
     } catch (error: any) {
       console.error('Bulk delete failed:', error.message);
-      await fetchBackendData();
+      if (navigator.onLine) await fetchBackendData();
     }
   }, [user]);
 
@@ -522,11 +654,29 @@ export const useFinance = () => {
       }));
 
       if (user) {
-        await api.post('/finance/transfer', data);
+        if (!navigator.onLine) {
+          syncService.enqueue('POST', '/finance/transfer', data);
+        } else {
+          try {
+            setIsActionLoading(true);
+            await Promise.all([
+              api.post('/finance/transfer', data),
+              delay(600)
+            ]);
+          } catch (error: any) {
+            if (error.status === 0) {
+              syncService.enqueue('POST', '/finance/transfer', data);
+            } else {
+              throw error;
+            }
+          } finally {
+            setIsActionLoading(false);
+          }
+        }
       }
     } catch (error: any) {
       console.error('Transfer failed:', error.message);
-      await fetchBackendData();
+      if (navigator.onLine) await fetchBackendData();
       throw error;
     }
   }, [user, accounts]);
@@ -563,6 +713,7 @@ export const useFinance = () => {
     setCurrency,
     stats,
     isLoading,
+    isActionLoading,
     addTransaction,
     updateTransaction,
     deleteTransaction,

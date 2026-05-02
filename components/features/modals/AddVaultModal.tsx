@@ -9,9 +9,10 @@ interface Props {
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   account?: Account | null;
   accountTypes: AccountType[];
+  isLoading?: boolean;
 }
 
-export const AddVaultModal: React.FC<Props> = ({ isOpen, onClose, onSubmit, account, accountTypes }) => {
+export const AddVaultModal: React.FC<Props> = ({ isOpen, onClose, onSubmit, account, accountTypes, isLoading }) => {
   if (!isOpen) return null;
 
   return (
@@ -83,10 +84,20 @@ export const AddVaultModal: React.FC<Props> = ({ isOpen, onClose, onSubmit, acco
 
             <button 
               type="submit" 
-              className="w-full group bg-gradient-to-r from-[var(--action-primary)] to-[#fbbf24] text-white py-5 rounded-2xl font-bold uppercase tracking-[0.15em] shadow-xl shadow-orange-500/20 hover:shadow-orange-500/40 hover:scale-[1.01] active:scale-[0.98] transition-all flex items-center justify-center gap-3 mt-4"
+              disabled={isLoading}
+              className={`w-full group bg-gradient-to-r from-[var(--action-primary)] to-[#fbbf24] text-white py-5 rounded-2xl font-bold uppercase tracking-[0.15em] shadow-xl shadow-orange-500/20 hover:shadow-orange-500/40 hover:scale-[1.01] active:scale-[0.98] transition-all flex items-center justify-center gap-3 mt-4 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
-              {account ? 'Confirm Changes' : 'Add Account'}
-              <ShieldCheck size={18} className="group-hover:rotate-12 transition-transform" />
+              {isLoading ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  <span>Securing...</span>
+                </>
+              ) : (
+                <>
+                  {account ? 'Confirm Changes' : 'Add Account'}
+                  <ShieldCheck size={18} className="group-hover:rotate-12 transition-transform" />
+                </>
+              )}
             </button>
           </form>
         </div>

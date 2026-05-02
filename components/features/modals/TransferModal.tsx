@@ -10,9 +10,10 @@ interface Props {
     accounts: Account[];
     onSubmit: (data: { sourceAccountId: string; targetAccountId: string; amount: number; description: string; date: string }) => void;
     currencySymbol: string;
+    isLoading?: boolean;
 }
 
-export const TransferModal: React.FC<Props> = ({ isOpen, onClose, accounts, onSubmit, currencySymbol }) => {
+export const TransferModal: React.FC<Props> = ({ isOpen, onClose, accounts, onSubmit, currencySymbol, isLoading }) => {
     const [date, setDate] = useState(new Date().toISOString());
     const [error, setError] = useState<string | null>(null);
 
@@ -143,10 +144,20 @@ export const TransferModal: React.FC<Props> = ({ isOpen, onClose, accounts, onSu
 
                         <button
                             type="submit"
-                            className="w-full group bg-gradient-to-r from-[var(--action-primary)] to-[#fbbf24] text-white py-5 rounded-2xl font-bold uppercase tracking-[0.15em] shadow-xl shadow-orange-500/20 hover:shadow-orange-500/40 hover:scale-[1.01] active:scale-[0.98] transition-all flex items-center justify-center gap-3 mt-4"
+                            disabled={isLoading}
+                            className={`w-full group bg-gradient-to-r from-[var(--action-primary)] to-[#fbbf24] text-white py-5 rounded-2xl font-bold uppercase tracking-[0.15em] shadow-xl shadow-orange-500/20 hover:shadow-orange-500/40 hover:scale-[1.01] active:scale-[0.98] transition-all flex items-center justify-center gap-3 mt-4 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
                         >
-                            Transfer Funds
-                            <CheckCircle2 size={18} className="group-hover:rotate-12 transition-transform" />
+                            {isLoading ? (
+                                <>
+                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                    <span>Processing...</span>
+                                </>
+                            ) : (
+                                <>
+                                    Transfer Funds
+                                    <CheckCircle2 size={18} className="group-hover:rotate-12 transition-transform" />
+                                </>
+                            )}
                         </button>
                     </form>
                 </div>
