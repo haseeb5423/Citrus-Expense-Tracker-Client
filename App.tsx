@@ -30,6 +30,7 @@ import { GlobalLoading } from './components/ui/GlobalLoading';
 import { LoadingSpinner } from './components/ui/LoadingSpinner';
 import { OfflineBanner } from './components/ui/OfflineBanner';
 import { InstallPrompt } from './components/ui/InstallPrompt';
+import { RouteResolver } from './components/ui/RouteResolver';
 
 const FinanceApp: React.FC = () => {
   const { user, loading, logout, showAuth, setShowAuth } = useAuth();
@@ -165,107 +166,115 @@ const FinanceApp: React.FC = () => {
 
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 custom-scrollbar">
           {activeTab === 'dashboard' && (
-            <div className="max-w-7xl mx-auto space-y-8 fade-in">
-              <KpiCards stats={stats} currencySymbol={currency} />
+            <RouteResolver resolve={[accounts]} message="Preparing Dashboard...">
+              <div className="max-w-7xl mx-auto space-y-8 fade-in">
+                <KpiCards stats={stats} currencySymbol={currency} />
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <Suspense fallback={<ChartSkeleton />}>
-                  <MainChart
-                    transactions={transactions}
-                    view={chartView}
-                    onViewChange={setChartView}
-                  />
-                </Suspense>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  <Suspense fallback={<ChartSkeleton />}>
+                    <MainChart
+                      transactions={transactions}
+                      view={chartView}
+                      onViewChange={setChartView}
+                    />
+                  </Suspense>
 
-                <div className="flex flex-col gap-6 lg:h-full">
-                  <div className="flex justify-between items-center px-1">
-                    <h3 className="text-lg font-bold tracking-tight">Active Wallets</h3>
-                    <button
-                      className="text-[var(--action-primary)] font-semibold text-xs flex items-center gap-1 hover:gap-2 transition-all"
-                      onClick={() => setActiveTab('accounts')}
-                    >
-                      Manage <ChevronRightIcon size={14} />
-                    </button>
-                  </div>
+                  <div className="flex flex-col gap-6 lg:h-full">
+                    <div className="flex justify-between items-center px-1">
+                      <h3 className="text-lg font-bold tracking-tight">Active Wallets</h3>
+                      <button
+                        className="text-[var(--action-primary)] font-semibold text-xs flex items-center gap-1 hover:gap-2 transition-all"
+                        onClick={() => setActiveTab('accounts')}
+                      >
+                        Manage <ChevronRightIcon size={14} />
+                      </button>
+                    </div>
 
-                  <div className="relative">
-                    <div className="flex lg:flex-col gap-8 overflow-x-auto lg:overflow-y-auto lg:max-h-[600px] py-6 lg:py-2 snap-x snap-mandatory no-scrollbar lg:custom-scrollbar -mx-4 px-4 lg:mx-0 lg:px-2">
-                      {accounts.map(acc => (
-                        <div key={acc.id} className="snap-center shrink-0">
-                          <AccountCard
-                            account={acc}
-                            formatCurrency={appFormatCurrency}
-                            onEdit={(e) => { e.stopPropagation(); setEditingAccount(acc); }}
-                            onDelete={(e) => { e.stopPropagation(); deleteAccount(acc.id); }}
-                          />
-                        </div>
-                      ))}
+                    <div className="relative">
+                      <div className="flex lg:flex-col gap-8 overflow-x-auto lg:overflow-y-auto lg:max-h-[600px] py-6 lg:py-2 snap-x snap-mandatory no-scrollbar lg:custom-scrollbar -mx-4 px-4 lg:mx-0 lg:px-2">
+                        {accounts.map(acc => (
+                          <div key={acc.id} className="snap-center shrink-0">
+                            <AccountCard
+                              account={acc}
+                              formatCurrency={appFormatCurrency}
+                              onEdit={(e) => { e.stopPropagation(); setEditingAccount(acc); }}
+                              onDelete={(e) => { e.stopPropagation(); deleteAccount(acc.id); }}
+                            />
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              <RecentHistory
-                transactions={transactions}
-                onSeeAll={() => setActiveTab('transactions')}
-                currencySymbol={currency}
-              />
-            </div>
+                <RecentHistory
+                  transactions={transactions}
+                  onSeeAll={() => setActiveTab('transactions')}
+                  currencySymbol={currency}
+                />
+              </div>
+            </RouteResolver>
           )}
 
           {activeTab === 'accounts' && (
-            <Suspense fallback={
-              <div className="flex flex-col items-center justify-center h-96 gap-4">
-                <LoadingSpinner size={48} />
-                <p className="text-sm text-[var(--text-muted)] font-semibold">Loading Accounts...</p>
-              </div>
-            }>
-              <VaultsView
-                accounts={accounts}
-                transactions={transactions}
-                formatCurrency={appFormatCurrency}
-                onAddVault={() => setShowAddVault(true)}
-                onEditVault={(acc) => setEditingAccount(acc)}
-                onDeleteVault={(id) => deleteAccount(id)}
-                onTransfer={() => setShowTransferModal(true)}
-                currencySymbol={currency}
-                onSeeAll={() => setActiveTab('transactions')}
-              />
-            </Suspense>
+            <RouteResolver resolve={[accounts]} message="Resolving Vaults...">
+              <Suspense fallback={
+                <div className="flex flex-col items-center justify-center h-96 gap-4">
+                  <LoadingSpinner size={48} />
+                  <p className="text-sm text-[var(--text-muted)] font-semibold">Loading Accounts...</p>
+                </div>
+              }>
+                <VaultsView
+                  accounts={accounts}
+                  transactions={transactions}
+                  formatCurrency={appFormatCurrency}
+                  onAddVault={() => setShowAddVault(true)}
+                  onEditVault={(acc) => setEditingAccount(acc)}
+                  onDeleteVault={(id) => deleteAccount(id)}
+                  onTransfer={() => setShowTransferModal(true)}
+                  currencySymbol={currency}
+                  onSeeAll={() => setActiveTab('transactions')}
+                />
+              </Suspense>
+            </RouteResolver>
           )}
 
           {activeTab === 'transactions' && (
-            <Suspense fallback={
-              <div className="flex flex-col items-center justify-center h-96 gap-4">
-                <LoadingSpinner size={48} />
-                <p className="text-sm text-[var(--text-muted)] font-semibold">Loading Transactions...</p>
-              </div>
-            }>
-              <HistoryView
-                transactions={transactions}
-                accounts={accounts}
-                onEdit={(t) => setEditingTransaction(t)}
-                onDelete={deleteTransaction}
-                onBulkDelete={bulkDeleteTransactions}
-                onDeleteAll={deleteAllTransactions}
-                currencySymbol={currency}
-              />
-            </Suspense>
+            <RouteResolver resolve={[transactions]} message="Resolving History...">
+              <Suspense fallback={
+                <div className="flex flex-col items-center justify-center h-96 gap-4">
+                  <LoadingSpinner size={48} />
+                  <p className="text-sm text-[var(--text-muted)] font-semibold">Loading Transactions...</p>
+                </div>
+              }>
+                <HistoryView
+                  transactions={transactions}
+                  accounts={accounts}
+                  onEdit={(t) => setEditingTransaction(t)}
+                  onDelete={deleteTransaction}
+                  onBulkDelete={bulkDeleteTransactions}
+                  onDeleteAll={deleteAllTransactions}
+                  currencySymbol={currency}
+                />
+              </Suspense>
+            </RouteResolver>
           )}
 
           {activeTab === 'reports' && (
-            <Suspense fallback={
-              <div className="flex flex-col items-center justify-center h-96 gap-4">
-                <LoadingSpinner size={48} />
-                <p className="text-sm text-[var(--text-muted)] font-semibold">Loading Analytics...</p>
-              </div>
-            }>
-              <AnalyticsView
-                transactions={transactions}
-                accounts={accounts}
-                currencySymbol={currency}
-              />
-            </Suspense>
+            <RouteResolver resolve={[transactions, accounts]} message="Resolving Analytics...">
+              <Suspense fallback={
+                <div className="flex flex-col items-center justify-center h-96 gap-4">
+                  <LoadingSpinner size={48} />
+                  <p className="text-sm text-[var(--text-muted)] font-semibold">Loading Analytics...</p>
+                </div>
+              }>
+                <AnalyticsView
+                  transactions={transactions}
+                  accounts={accounts}
+                  currencySymbol={currency}
+                />
+              </Suspense>
+            </RouteResolver>
           )}
 
           {activeTab === 'settings' && (

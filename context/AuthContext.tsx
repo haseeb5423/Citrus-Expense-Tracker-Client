@@ -14,8 +14,13 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<UserProfile | null>(() => {
+    const cached = localStorage.getItem('citrus_user_cache');
+    return cached ? JSON.parse(cached) : null;
+  });
+  const [loading, setLoading] = useState(() => {
+    return !localStorage.getItem('citrus_user_cache'); // Only load if no cache
+  });
   const [showAuth, setShowAuth] = useState(false);
 
   useEffect(() => {
@@ -32,20 +37,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       try {
         // Use a short timeout for auth check - if backend is down, fail fast
-        const { data } = await api.get('/auth/me', { timeout: 5000 });
+        const { data } = await api.get('/auth/me', { timeout: 2000 });
         setUser(data);
+        localStorage.setItem('citrus_user_cache', JSON.stringify(data));
       } catch (error: any) {
         // Silently handle network errors and auth failures
-        const isOffline = !error?.response || error?.status === 500 || error?.status === 503;
-        const isAuthError = error?.status === 401;
+        const isOffline = !error?.response || error?.status === 0 || error?.status === 500 || error?.status === 503 || error?.code === 'ECONNABORTED';
+        const isAuthError = error?.response?.status === 401;
 
-        if (!isOffline && !isAuthError) {
-          console.log('Auth check failed:', error?.message || 'Unknown error');
+        if (isOffline) {
+          const cachedUser = localStorage.getItem('citrus_user_cache');
+          if (cachedUser) {
+            setUser(JSON.parse(cachedUser));
+            setLoading(false);
+            return;
+          }
         }
 
-        // If 401, clear the invalid token
         if (isAuthError) {
           localStorage.removeItem('citrus_token');
+          localStorage.removeItem('citrus_user_cache');
         }
         setUser(null);
       } finally {
@@ -60,6 +71,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (userData.token) {
       localStorage.setItem('citrus_token', userData.token);
     }
+    localStorage.setItem('citrus_user_cache', JSON.stringify(userData));
     setUser(userData);
     setShowAuth(false);
   };
@@ -71,6 +83,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Logout failed', error);
     } finally {
       localStorage.removeItem('citrus_token');
+      localStorage.removeItem('citrus_user_cache');
+      localStorage.removeItem('citrus_cache_accounts');
+      localStorage.removeItem('citrus_cache_transactions');
+      localStorage.removeItem('citrus_cache_types');
       setUser(null);
     }
   };

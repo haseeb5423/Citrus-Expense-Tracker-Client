@@ -17,12 +17,25 @@ const DEFAULT_TYPES: AccountType[] = [
 
 export const useFinance = () => {
   const { user } = useAuth();
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [accountTypes, setAccountTypes] = useState<AccountType[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>(() => {
+    const cached = localStorage.getItem('citrus_cache_accounts');
+    return cached ? JSON.parse(cached) : [];
+  });
+  const [transactions, setTransactions] = useState<Transaction[]>(() => {
+    const cached = localStorage.getItem('citrus_cache_transactions');
+    return cached ? JSON.parse(cached) : [];
+  });
+  const [accountTypes, setAccountTypes] = useState<AccountType[]>(() => {
+    const cached = localStorage.getItem('citrus_cache_types');
+    return cached ? JSON.parse(cached) : [];
+  });
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [currency, setCurrency] = useState(() => localStorage.getItem('citrus_currency') || 'Rs.');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(() => {
+    const cachedAccs = localStorage.getItem('citrus_cache_accounts');
+    const cachedGuest = localStorage.getItem(GUEST_DATA_KEY);
+    return !cachedAccs && !cachedGuest; // Only show loader if we have NO data at all
+  });
   const [isActionLoading, setIsActionLoading] = useState(false);
 
   const prevUserRef = useRef<string | null>(null);
@@ -30,8 +43,10 @@ export const useFinance = () => {
 
   // Unified Data Loading Logic
   useEffect(() => {
-    // Start loading whenever user state changes or initial load
-    setIsLoading(true);
+    // Only show full-page loading if we have absolutely no data to show
+    if (accounts.length === 0) {
+      setIsLoading(true);
+    }
 
     const loadData = async () => {
       try {
@@ -133,41 +148,26 @@ export const useFinance = () => {
         }));
       }
 
-      // Merge defaults with fetched. Ensure no duplicates by label.
-      // Or just use fetched if we sync defaults? 
-      // The requirement is "custom types". Defaults are hardcoded.
-      // Let's keep DEFAULT_TYPES always present and append custom fetched ones.
-      // Filter out any fetched types that are already in DEFAULT_TYPES (by label)
-
-      // Account Types Logic:
-      // 1. Get types from backend
-      // 2. If backend has types, use them.
-      // 3. Always ensure DEFAULT_TYPES are available (merged), but prioritize backend IDs if they match.
-
-      let finalTypes: AccountType[] = [...DEFAULT_TYPES];
-
-      // console.log("Account Types from Backend:", data.accountTypes); 
-
-      if (data.accountTypes && Array.isArray(data.accountTypes)) {
-        const backendTypes = data.accountTypes.map((t: any) => ({
-          id: t._id || t.id,
-          label: t.label,
-          theme: t.theme
-        }));
-
-        // Backend is the source of truth.
-        // Do NOT merge defaults. If user deleted them, they should be gone.
-        finalTypes = backendTypes;
-      }
-
-      // Sort: Defaults first (by ID or known labels), then others.
-      // Actually just alphabetical or creation order is fine.
-
       setAccounts(normalizedAccounts);
       setTransactions(normalizedTransactions);
-      setAccountTypes(finalTypes);
-    } catch (e) {
-      console.error("Fetch failed", e);
+      setAccountTypes(fetchedTypes);
+
+      // SAVE TO CACHE
+      if (user) {
+        localStorage.setItem('citrus_cache_accounts', JSON.stringify(normalizedAccounts));
+        localStorage.setItem('citrus_cache_transactions', JSON.stringify(normalizedTransactions));
+        localStorage.setItem('citrus_cache_types', JSON.stringify(fetchedTypes));
+      }
+    } catch (error) {
+      console.error("Backend fetch failed", error);
+      // Fallback to cache if available
+      const cachedAccs = localStorage.getItem('citrus_cache_accounts');
+      const cachedTxs = localStorage.getItem('citrus_cache_transactions');
+      const cachedTypes = localStorage.getItem('citrus_cache_types');
+
+      if (cachedAccs) setAccounts(JSON.parse(cachedAccs));
+      if (cachedTxs) setTransactions(JSON.parse(cachedTxs));
+      if (cachedTypes) setAccountTypes(JSON.parse(cachedTypes));
     }
   };
 
@@ -276,11 +276,19 @@ export const useFinance = () => {
       };
 
       // Update state immediately
-      setTransactions(prev => [optimisticTx, ...prev]);
+      setTransactions(prev => {
+        const updated = [optimisticTx, ...prev];
+        if (user) localStorage.setItem('citrus_cache_transactions', JSON.stringify(updated));
+        return updated;
+      });
       if (targetAcc) {
-        setAccounts(prev => prev.map(acc =>
-          acc.id === data.accountId ? { ...acc, balance: balanceAt } : acc
-        ));
+        setAccounts(prev => {
+          const updated = prev.map(acc =>
+            acc.id === data.accountId ? { ...acc, balance: balanceAt } : acc
+          );
+          if (user) localStorage.setItem('citrus_cache_accounts', JSON.stringify(updated));
+          return updated;
+        });
       }
 
       if (user) {
@@ -298,7 +306,12 @@ export const useFinance = () => {
               api.post('/finance/transactions', txData),
               delay(600)
             ]);
-            setTransactions(prev => prev.map(tx => tx.id === optimisticTx.id ? { ...response.data, id: response.data._id || response.data.id } : tx));
+            const savedTx = { ...response.data, id: response.data._id || response.data.id };
+            setTransactions(prev => {
+              const updated = prev.map(tx => tx.id === optimisticTx.id ? savedTx : tx);
+              localStorage.setItem('citrus_cache_transactions', JSON.stringify(updated));
+              return updated;
+            });
           } catch (error: any) {
             if (error.status === 0) {
               syncService.enqueue('POST', '/finance/transactions', txData);
@@ -408,7 +421,11 @@ export const useFinance = () => {
               api.post('/finance/accounts', data),
               delay(600)
             ]);
-            setAccounts(prev => prev.map(acc => acc.id === optimisticAccount.id ? { ...savedAccount, id: savedAccount._id || savedAccount.id } : acc));
+            setAccounts(prev => {
+              const updated = prev.map(acc => acc.id === optimisticAccount.id ? { ...savedAccount, id: savedAccount._id || savedAccount.id } : acc);
+              localStorage.setItem('citrus_cache_accounts', JSON.stringify(updated));
+              return updated;
+            });
           } catch (error: any) {
             if (error.status === 0) {
               syncService.enqueue('POST', '/finance/accounts', data);
@@ -456,21 +473,35 @@ export const useFinance = () => {
 
   const deleteAccount = useCallback(async (id: string) => {
     try {
-      setAccounts(prev => prev.filter(acc => acc.id !== id));
-      setTransactions(prev => prev.filter(t => t.accountId !== id));
+      setAccounts(prev => {
+        const updated = prev.filter(acc => acc.id !== id);
+        if (user) localStorage.setItem('citrus_cache_accounts', JSON.stringify(updated));
+        return updated;
+      });
+      setTransactions(prev => {
+        const updated = prev.filter(t => t.accountId !== id);
+        if (user) localStorage.setItem('citrus_cache_transactions', JSON.stringify(updated));
+        return updated;
+      });
 
       if (user) {
         if (!navigator.onLine) {
           syncService.enqueue('DELETE', `/finance/accounts/${id}`);
         } else {
           try {
-            await api.delete(`/finance/accounts/${id}`);
+            setIsActionLoading(true);
+            await Promise.all([
+              api.delete(`/finance/accounts/${id}`),
+              delay(600)
+            ]);
           } catch (error: any) {
             if (error.status === 0) {
               syncService.enqueue('DELETE', `/finance/accounts/${id}`);
             } else {
               throw error;
             }
+          } finally {
+            setIsActionLoading(false);
           }
         }
       }
@@ -486,21 +517,27 @@ export const useFinance = () => {
         const transaction = prev.find(t => t.id === id);
         if (!transaction) return prev;
 
-        setAccounts(accounts => accounts.map(acc => {
-          if (acc.id === transaction.accountId) {
-            const currentBal = Number(acc.balance);
-            const amt = Number(transaction.amount);
-            return {
-              ...acc,
-              balance: transaction.type === 'income'
-                ? Number(currentBal - amt)
-                : Number(currentBal + amt)
-            };
-          }
-          return acc;
-        }));
+        setAccounts(accounts => {
+          const updated = accounts.map(acc => {
+            if (acc.id === transaction.accountId) {
+              const currentBal = Number(acc.balance);
+              const amt = Number(transaction.amount);
+              return {
+                ...acc,
+                balance: transaction.type === 'income'
+                  ? Number(currentBal - amt)
+                  : Number(currentBal + amt)
+              };
+            }
+            return acc;
+          });
+          if (user) localStorage.setItem('citrus_cache_accounts', JSON.stringify(updated));
+          return updated;
+        });
 
-        return prev.filter(t => t.id !== id);
+        const updatedTxs = prev.filter(t => t.id !== id);
+        if (user) localStorage.setItem('citrus_cache_transactions', JSON.stringify(updatedTxs));
+        return updatedTxs;
       });
 
       if (user) {
@@ -663,6 +700,9 @@ export const useFinance = () => {
               api.post('/finance/transfer', data),
               delay(600)
             ]);
+            // Transfer successful, ensure cache is updated with current state
+            localStorage.setItem('citrus_cache_accounts', JSON.stringify(accounts));
+            localStorage.setItem('citrus_cache_transactions', JSON.stringify(transactions));
           } catch (error: any) {
             if (error.status === 0) {
               syncService.enqueue('POST', '/finance/transfer', data);
